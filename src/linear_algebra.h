@@ -22,6 +22,7 @@ float radians(float degree);
 void array_converter(float trans[4][4], float *array);
 void translate(float trans[4][4], float *vec_trans);
 void matrix_print(const char *name, float trans[4][4]);
+void create_vec3(float vec3[3], float arg);
 
 //void create_mat4(t_mat4 *matrix, float arg);
 //void rotate(mat4 *trans, float radians, vec3 *vec_rotate);

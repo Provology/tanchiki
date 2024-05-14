@@ -38,9 +38,19 @@ void multiply_matrix(float matr1[4][4], float matr2[4][4])
 
 void create_mat4(float matrix[4][4], float arg)
 {
+	memset(matrix, 0, 16 * sizeof(float));
 	for(int i = 0; i < 4; i++)
 	{
 		matrix[i][i] = arg;
+	}
+}
+
+void create_vec3(float vec3[3], float arg)
+{
+	memset(vec3, 0, 3 * sizeof(float));
+	for(int i = 0; i < 3; i++)
+	{
+		vec3[i] = arg;
 	}
 }
 
@@ -82,13 +92,15 @@ void translate(float trans[4][4], float *vec_trans)
 	{
 		tl_m[i][i] = 1.0;
 		tl_m[i][3] = vec_trans[i];
-		trans[i][i] = 1.0;
-		trans[i][3] = vec_trans[i];
+//		trans[i][i] = 1.0;
+//		trans[i][3] = vec_trans[i];
 	}
 	tl_m[3][3] = 1.0;
-	trans[3][3] = 1.0;
+//	trans[3][3] = 1.0;
 
-//	multiply_matrix(trans, tl_m);
+	multiply_matrix(trans, tl_m);
+	//multiply_matrix(tl_m, trans);
+	//memcpy(trans, tl_m, 16 * sizeof(float));
 }
 
 void array_converter(float trans[4][4], float *array)

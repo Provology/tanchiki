@@ -11,10 +11,11 @@ uniform mat4 transform;
 
 void main()
 {
-    gl_Position = transform * vec4(aPos, 1.0);
+ //   gl_Position = transform * vec4(aPos, 1.0);
+    gl_Position = vec4(aPos, 1.0) *  transform;
     ourColor = aColor;
-    TexCoord = vec2(aTexCoord.x, aTexCoord.y);
-//   TexCoord = aTexCoord;
+ //   TexCoord = vec2(aTexCoord.x, aTexCoord.y);
+   TexCoord = aTexCoord;
 }
 
 

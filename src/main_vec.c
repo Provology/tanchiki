@@ -76,7 +76,7 @@ int main()
     // ------------------------------------
 	unsigned int shaderProgram_tex;//TODO create shader program object
 	shaderProgram_tex = build_shader(
-		"/home/ruslan/Desktop/PROJ/ping_pong/src/shaders/shader_tex.vs", 
+		"/home/ruslan/Desktop/PROJ/ping_pong/src/shaders/shader_matrix.vs", 
 		"/home/ruslan/Desktop/PROJ/ping_pong/src/shaders/shader_tex.fs"
 		);
 
@@ -159,8 +159,8 @@ int main()
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     // load image, create texture and generate mipmaps
 //    data = stbi_load(FileSystem::getPath("resources/textures/awesomeface.png").c_str(), &width, &height, &nrChannels, 0);
-
-    data = stbi_load("/home/ruslan/Downloads/screenshot.png", &width, &height, &nrChannels, 0);
+    data = stbi_load("/home/ruslan/Downloads/1714983667273.jpg", &width, &height, &nrChannels, 0);
+//    data = stbi_load("/home/ruslan/Downloads/screenshot.png", &width, &height, &nrChannels, 0);
     if (data)
     {
         // note that the awesomeface.png has transparency and thus an alpha channel, so make sure to tell OpenGL the data type is of GL_RGBA
@@ -181,8 +181,8 @@ int main()
     // or set it via the texture class
 //    ourShader.setInt("texture2", 1);
     	glUseProgram(shaderProgram_tex);
-	glUniform1i(glGetUniformLocation(shaderProgram_tex, "ourTexture"), 0);
-	glUniform1i(glGetUniformLocation(shaderProgram_tex, "ourTexture1"), 1);
+	glUniform1i(glGetUniformLocation(shaderProgram_tex, "texture1"), 0);
+	glUniform1i(glGetUniformLocation(shaderProgram_tex, "texture2"), 1);
 
 
 //	unsigned int transformLoc = glGetUniformLocation(shaderProgram_tex, "transform");
@@ -217,14 +217,14 @@ int main()
         float trans[4][4] = {0};
 	float angle = glfwGetTime();
         create_mat4(trans, 1.0f);
+	translate(trans, vec_tl); 
 //        rotate(trans, angle, vec_rotate);
-//	translate(trans, vec_tl); 
 	matrix_print("kekvs", trans);
 //	printf("angle = %f\n", angle);
         // render container
      	glUseProgram(shaderProgram_tex);
-//	unsigned int transformLoc = glGetUniformLocation(shaderProgram_tex, "transform");
-//	glUniformMatrix4fv(transformLoc, 1, GL_FALSE, &trans[0][0]);
+	unsigned int transformLoc = glGetUniformLocation(shaderProgram_tex, "transform");
+	glUniformMatrix4fv(transformLoc, 1, GL_FALSE, &trans[0][0]);
         glBindVertexArray(VAO);
         glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
