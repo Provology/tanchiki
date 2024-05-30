@@ -1,9 +1,16 @@
-#include <math.h>
 #include <string.h>
 #include <stdio.h>
 #include "linear_algebra.h"
 
 #define PI 3.14159265359
+
+float projection_matrix[4][4] = 
+{
+    {2/800, 0, 0, -1},
+    {0, 2/600, 0, -1},
+    {0, 0, 0, 0},
+    {0, 0, 0, 1}
+};
 
 void add_matrix(float matr1[4][4], float matr2[4][4])
 {
@@ -34,6 +41,11 @@ void multiply_matrix(float matr1[4][4], float matr2[4][4])
 			matr1[i][j] = val;
 		}
 	}
+}
+
+void ortho_projection(float matr1[4][4])
+{
+    multiply_matrix(matr1, projection_matrix);
 }
 
 void create_mat4(float matrix[4][4], float arg)

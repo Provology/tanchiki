@@ -1,10 +1,12 @@
 #ifndef TEXTURE_MODULE_H
 #define TEXTURE_MODULE_H
 
-unsigned char *texture_unpack(const char *Path, 
-                    int *width, int *height, 
-                    int *color_channels);
+#include <glad/glad.h>
+// #include <string.h>
+// #include <stdio.h>
 
-void texture_free(unsigned char *data);
+void texture_loader(unsigned int *texture, const char *path_image);
 
 #endif // TEXTURE_MODULE_H
+
+

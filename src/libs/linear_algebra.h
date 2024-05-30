@@ -1,6 +1,8 @@
 #ifndef LINEAR_ALGEBRA_H 
 #define LINEAR_ALGEBRA_H 
 
+#include <math.h>
+
 typedef struct s_vec3{
     float x;
     float y;

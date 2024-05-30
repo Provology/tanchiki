@@ -1,1 +1,9 @@
 *~
+build/*
+output/*
+*.swp
+*.un~
+*.c~
+*.h~
+*copy*
+
