@@ -19,18 +19,23 @@ void processInput(GLFWwindow *window);
 // images
 const char *PATH_BC = "/home/ruslan/Downloads/battle_city.jpg";
 // shaders
-const char *SHADER_VERTEX = "/home/ruslan/Desktop/PROJ/ping_pong/src/shaders/shader_matrix.vs"; 
-const char *SHADER_FRAGMENT = "/home/ruslan/Desktop/PROJ/ping_pong/src/shaders/shader_tex.fs";
+const char *SHADER_VERTEX = "/home/ruslan/Desktop/PROJ/ping_pong/src/shaders/projection.vs"; 
+const char *SHADER_FRAGMENT = "/home/ruslan/Desktop/PROJ/ping_pong/src/shaders/projection.fs";
 // settings
 float mixValue = 0.0f;
 unsigned int shaderProgram_tex;//TODO create shader program object
-unsigned int quadVAO;
+// unsigned int quadVAO;
+
+
+
+void DrawSprite(t_vbuff *vbuff, int texture, float position[3], float size[3], float angle, float color[3]);
+void initRenderData(t_vbuff *vbuff);
 
 // glfw: initialize and configure
 // ------------------------------
 void glfw_init(void)
 {
-   glfwInit();
+    glfwInit();
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
@@ -53,13 +58,14 @@ int main()
     {
         return(-1);
     }
-
+    
+    initRenderData(&vbuff);
     // build and compile our shader program
     // ------------------------------------
     shaderProgram_tex = build_shader(SHADER_VERTEX, SHADER_FRAGMENT);
 
 
-    vertices_buffer(&vbuff);
+   vertices_buffer(&vbuff);
     // load and create a texture 
     // -------------------------
 //  texture_loader(&texture1, PATH_BANANA);
@@ -67,8 +73,8 @@ int main()
     printf("%d, %d\n", texture2[0], texture2[1]);
     // tell opengl for each sampler to which texture unit it belongs to (only has to be done once)
     glUseProgram(shaderProgram_tex);
-    glUniform1i(glGetUniformLocation(shaderProgram_tex, "texture1"), 0);
-    glUniform1i(glGetUniformLocation(shaderProgram_tex, "texture2"), 1);
+//    glUniform1i(glGetUniformLocation(shaderProgram_tex, "texture1"), 0);
+//    glUniform1i(glGetUniformLocation(shaderProgram_tex, "texture2"), 1);
 
     // render loop
     // -----------
@@ -94,7 +100,15 @@ int main()
 //	glUniform1f(glGetUniformLocation(shaderProgram_tex, "mixValue"), mixValue);
 
         // create transformations
-	float trans[4][4] = {0};
+	// float trans[4][4] = {0};
+    float pos[3] = {100.0, 5.0, 0.0};
+    float size[3] = {1.0, 1.0, 1.0};
+    float angle = 50.0;
+    float color[3] = {1.0, 0.0, 1.0};
+
+
+	DrawSprite(&vbuff, texture2, pos, size, angle, color); 
+
         // render container
 //	matrix_trans1(trans);
 //	transform(shaderProgram_tex, trans);
@@ -135,7 +149,7 @@ void processInput(GLFWwindow *window)
         glfwSetWindowShouldClose(window, 1);
 }
 
-void DrawSprite(int texture, float position[3], float size[3], float angle, float color[3])
+void DrawSprite(t_vbuff *vbuff, int texture, float position[3], float size[3], float angle, float color[3])
 {
     float vec_centr[3] = {0.0f};
     float model[4][4] = {0.0f};
@@ -162,13 +176,15 @@ void DrawSprite(int texture, float position[3], float size[3], float angle, floa
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, texture);
 
-    glBindVertexArray(quadVAO);
+    glBindVertexArray(vbuff->VAO);
     glDrawArrays(GL_TRIANGLES, 0, 6);
     glBindVertexArray(0);
 }
 
-void initRenderData(unsigned int VBO)
+void initRenderData(t_vbuff *vbuff)
 {
+    // unsigned int vbuff->VAO = vbuff->VAO;
+    // unsigned int VBO = vbuff->VBO;
     // configure VAO/VBO
         float vertices[] = { 
         // pos      // tex
@@ -181,13 +197,13 @@ void initRenderData(unsigned int VBO)
         1.0f, 0.0f, 1.0f, 0.0f
     };
 
-    glGenVertexArrays(1, &quadVAO);
-    glGenBuffers(1, &VBO);
+    glGenVertexArrays(1, &vbuff->VAO);
+    glGenBuffers(1, &vbuff->VBO);
 
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    glBindBuffer(GL_ARRAY_BUFFER, vbuff->VBO);
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 
-    glBindVertexArray(quadVAO);
+    glBindVertexArray(vbuff->VAO);
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
