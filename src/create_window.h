@@ -7,6 +7,7 @@
 #include <stdio.h>
 
 int glfw_window(GLFWwindow **window);
+void glfw_init(void);
 
 #endif // CREATE_WINDOW_H
 

@@ -31,26 +31,12 @@ unsigned int shaderProgram_tex;//TODO create shader program object
 void DrawSprite(t_vbuff *vbuff, int texture, float position[3], float size[3], float angle, float color[3]);
 void initRenderData(t_vbuff *vbuff);
 
-// glfw: initialize and configure
-// ------------------------------
-void glfw_init(void)
-{
-    glfwInit();
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-
-#ifdef __APPLE__
-    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
-#endif
-}
-
 int main()
 {
     GLFWwindow *window = NULL;
     int error = 0;
     t_vbuff vbuff = {0};
-    unsigned int texture1, texture2[3];
+    unsigned int texture1[3];
 
     glfw_init();
     error = glfw_window(&window);
@@ -65,16 +51,12 @@ int main()
     shaderProgram_tex = build_shader(SHADER_VERTEX, SHADER_FRAGMENT);
 
 
-   vertices_buffer(&vbuff);
+    vertices_buffer(&vbuff);
     // load and create a texture 
     // -------------------------
-//  texture_loader(&texture1, PATH_BANANA);
-    texture_loader(texture2, PATH_BC);
-    printf("%d, %d\n", texture2[0], texture2[1]);
+    texture_loader(texture1, PATH_BC);
     // tell opengl for each sampler to which texture unit it belongs to (only has to be done once)
     glUseProgram(shaderProgram_tex);
-//    glUniform1i(glGetUniformLocation(shaderProgram_tex, "texture1"), 0);
-//    glUniform1i(glGetUniformLocation(shaderProgram_tex, "texture2"), 1);
 
     // render loop
     // -----------
@@ -89,22 +71,12 @@ int main()
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
 
-        // bind textures on corresponding texture units
-//        glActiveTexture(GL_TEXTURE0);
-//        glBindTexture(GL_TEXTURE_2D, texture1);
-//        glActiveTexture(GL_TEXTURE0);
-//        glBindTexture(GL_TEXTURE_2D, texture2[1]);
-//        glActiveTexture(GL_TEXTURE1);
-//        glBindTexture(GL_TEXTURE_2D, texture2[0]);
-
-//	glUniform1f(glGetUniformLocation(shaderProgram_tex, "mixValue"), mixValue);
-
         // create transformations
-	// float trans[4][4] = {0};
-    float pos[3] = {100.0, 5.0, 0.0};
-    float size[3] = {1.0, 1.0, 1.0};
-    float angle = 50.0;
-    float color[3] = {1.0, 0.0, 1.0};
+    	// float trans[4][4] = {0};
+        float pos[3] = {100.0, 5.0, 0.0};
+        float size[3] = {1.0, 1.0, 1.0};
+        float angle = 50.0;
+        float color[3] = {1.0, 0.0, 1.0};
 
 
 	DrawSprite(&vbuff, texture2, pos, size, angle, color); 
