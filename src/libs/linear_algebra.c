@@ -4,14 +4,6 @@
 
 #define PI 3.14159265359
 
-float projection_matrix[4][4] = 
-{
-    {2/800, 0, 0, -1},
-    {0, 2/600, 0, -1},
-    {0, 0, 0, 0},
-    {0, 0, 0, 1}
-};
-
 void add_matrix(float matr1[4][4], float matr2[4][4])
 {
 	for(int i = 0; i < 4; i++)
@@ -43,9 +35,21 @@ void multiply_matrix(float matr1[4][4], float matr2[4][4])
 	}
 }
 
-void ortho_projection(float matr1[4][4])
+void create_ortho_proj(float projection_matrix[4][4], float left, float right, float bottom, float top)
 {
-    multiply_matrix(matr1, projection_matrix);
+    create_mat4(projection_matrix, 1.0f);
+    projection_matrix[0][0] = 2.0 / (right - left);
+    projection_matrix[1][1] = 2.0 / (top - bottom);
+    projection_matrix[0][3] = -1 * (right + left) / (right - left);
+    projection_matrix[1][3] = -1 * (top + bottom) / (top - bottom);
+
+ //   printf("l = %f, r = %f, t = %f, b = %f\n", left, right, top, bottom);
+ //   float projection[4][4] = {
+ //       {2.0/(800.0 - 0.0), 0.0f, 0.0f, -(800.0 + 0.0)/(800.0 - 0.0)},
+ //       {0.0f, 2.0/(600.0 - 0.0), 0.0f, -(600.0 + 0.0)/(600.0 - 0.0)},
+ //       {0.0f, 0.0f, -2.0/(-1.0 - 1.0), -(1.0 + (-1.0))/(1.0 - (-1.0))},
+ //       {0.0f, 0.0f, 0.0f, 1.0f}
+ //       };
 }
 
 void create_mat4(float matrix[4][4], float arg)
@@ -133,13 +137,29 @@ float radians(float degree)
 
 void matrix_print(const char *name, float trans[4][4])
 {
+    printf("%s\n", name);
     for(int i = 0; i < 4; i++)
     {
 	    for(int j = 0; j < 4; j++)
 	    {
-		    printf("%s %d = %f\n",name, 4 * i + j, trans[i][j]);
+//		    printf("%s %d = %f\n",name, 4 * i + j, trans[i][j]);
+		    printf("%f, ", trans[i][j]);
 	    }
+        printf("\n");
     }
 }
 
+void rotate_centr(float model[4][4], float size[3], float angle)
+{
+    float vec_centr[3] = {0.0f};
+    float vec_rotate[3] = {0.0f, 0.0f, 1.0f};
+    vec_centr[0] = 0.5f * size[0];
+    vec_centr[1] = 0.5f * size[1];
+
+    translate(model, vec_centr); // move origin of rotation to center of quad
+    rotate(model, radians(angle), vec_rotate); // then rotate
+    vec_centr[0] = -vec_centr[0];
+    vec_centr[1] = -vec_centr[1];
+    translate(model, vec_centr); // move origin back 
+}
 

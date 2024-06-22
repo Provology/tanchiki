@@ -13,7 +13,8 @@ typedef struct s_vbuff
 } t_vbuff;
 
 
-void vertices_buffer(t_vbuff *vbuff);
+void initRenderData(t_vbuff *vbuff);
+// void vertices_buffer(t_vbuff *vbuff);
 
 #endif // VERTICES_MODULE_H
 

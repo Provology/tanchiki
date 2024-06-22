@@ -1,6 +1,7 @@
 #version 330 core
-in vec2 TexCoords;
 out vec4 color;
+
+in vec2 TexCoords;
 
 uniform sampler2D image;
 uniform vec3 spriteColor;

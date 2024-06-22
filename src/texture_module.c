@@ -9,15 +9,16 @@
 
 
 #define SPRITE_16 16
+#define TEX_Q 3
 
 void sprite_cut(char *sprite, const unsigned char *data, int width, int size)
 {
     for(int i = 0; i < 3 * size; i++)
     {
-	for(int j = 0; j < 3 * size; j++)
-	{
-	    sprite[j + (3 * size * i)] = data[j + (3 * width * i)];
-	}
+    	for(int j = 0; j < 3 * size; j++)
+	    {
+	        sprite[j + (3 * size * i)] = data[j + (3 * width * i)];
+	    }
     }
 }
 
@@ -30,11 +31,12 @@ void texture_loader(unsigned int *texture, const char *path_image)
     data = stbi_load(path_image, &width, &height, &nrChannels, 0);
     char sprite[3 * SPRITE_16 * 3 * SPRITE_16] = {0};
 
-    glGenTextures(2, texture);
+//    glGenTextures(TEX_Q, texture);
+    glGenTextures(3, texture);
     if (data)
     {
-	for(int i = 0; i < 2; i++)
-	{
+    	for(int i = 0; i < TEX_Q; i++)
+	    {
 //            int i = 0;
             glBindTexture(GL_TEXTURE_2D, texture[i]);
             // set the texture wrapping parameters
@@ -47,15 +49,15 @@ void texture_loader(unsigned int *texture, const char *path_image)
 
             sprite_cut(sprite, data + (3 * SPRITE_16 * i), width, SPRITE_16);
  
-  //          glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+ //           glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+        //    printf("width = %d, height = %d, data = %s\n", width, height, data);
             glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, SPRITE_16, SPRITE_16, 0, GL_RGB, GL_UNSIGNED_BYTE, sprite);
             glGenerateMipmap(GL_TEXTURE_2D);
-	}
+	    }
     }
     else
     {
-//        std::cout << "Failed to load texture" << std::endl;
-	printf("Failed to load texture\n");
+	    printf("Failed to load texture\n");
     }
     stbi_image_free(data);
 }

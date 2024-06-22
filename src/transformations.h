@@ -5,7 +5,6 @@
 #include <GLFW/glfw3.h>
 // #include <string.h>
 #include <stdio.h>
-#include "linear_algebra.h"
 
 void transform(unsigned int shaderProgram_tex, float trans[4][4], const char *name);
 
