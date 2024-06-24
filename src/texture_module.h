@@ -5,7 +5,7 @@
 // #include <string.h>
 // #include <stdio.h>
 
-void texture_loader(unsigned int *texture, const char *path_image);
+void texture_loader(unsigned int texnum, unsigned int *texture, const char *path_image);
 
 #endif // TEXTURE_MODULE_H
 

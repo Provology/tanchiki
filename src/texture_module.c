@@ -9,7 +9,6 @@
 
 
 #define SPRITE_16 16
-#define TEX_Q 3
 
 void sprite_cut(char *sprite, const unsigned char *data, int width, int size)
 {
@@ -22,7 +21,7 @@ void sprite_cut(char *sprite, const unsigned char *data, int width, int size)
     }
 }
 
-void texture_loader(unsigned int *texture, const char *path_image)
+void texture_loader(unsigned int texnum, unsigned int *texture, const char *path_image)
 {
     unsigned char *data = NULL;
     int width, height, nrChannels;
@@ -32,10 +31,10 @@ void texture_loader(unsigned int *texture, const char *path_image)
     char sprite[3 * SPRITE_16 * 3 * SPRITE_16] = {0};
 
 //    glGenTextures(TEX_Q, texture);
-    glGenTextures(3, texture);
+    glGenTextures(texnum, texture);
     if (data)
     {
-    	for(int i = 0; i < TEX_Q; i++)
+    	for(int i = 0; i < texnum; i++)
 	    {
 //            int i = 0;
             glBindTexture(GL_TEXTURE_2D, texture[i]);

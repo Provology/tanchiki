@@ -8,6 +8,7 @@ typedef struct s_tile
     float timeStep;
     float animStep;
     int tex;
+    int tex_index;
     signed int velocity[2];
     float pos[3];
 //    float size[3] = {80.0f, 60.0f, 1.0};

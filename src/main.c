@@ -49,7 +49,7 @@ const float color[3] = {1.0, 1.0, 1.0};
 
 // settings
 int keys[1024] = {0};
-float mixValue = 0.0f;
+// float mixValue = 0.0f;
 t_player player = {0};
 enum e_game_state game_state = GAME_ACTIVE;
 // unsigned int quadVAO;
@@ -62,7 +62,7 @@ int main()
     GLFWwindow *window = NULL;
     int error = 0;
     t_vbuff vbuff = {0};
-    unsigned int textures[3];
+    unsigned int textures[10];
     unsigned int shaderProgram_tex;//TODO create shader program object
 
     float currentFrame = 0;
@@ -94,7 +94,7 @@ int main()
 
     // load and create a texture 
     // -------------------------
-    texture_loader(textures, PATH_BC);
+    texture_loader(10, textures, PATH_BC);
     // tell opengl for each sampler to which texture unit it belongs to (only has to be done once)
     glUseProgram(shaderProgram_tex);
 //    printf("%d, %d, %d\n", textures[0], textures[1], textures[2]);
@@ -187,7 +187,7 @@ void render_tank(float deltaTime, t_tile *tank, unsigned int shaderProgram_tex, 
     {
 
 //        printf("animbranch\n");
-        tank->tex = (tank->tex + 1) % 2; // 2 - number of frames in animation loop
+        tank->tex = ((tank->tex + 1) % 2) + tank->tex_index; // 2 - number of frames in animation loop
         tank->animStep = 0;
     }
     if (tank->timeStep > 0.05)
@@ -196,19 +196,23 @@ void render_tank(float deltaTime, t_tile *tank, unsigned int shaderProgram_tex, 
         if (tank->velocity[0] < 0)
         {
             tank->pos[0] -= PIXEL_SIZE;
+            tank->tex_index = 2;
 //            printf("x=%f, y=%f\n", tank->pos[0], tank->pos[1]);
         }
         else if (tank->velocity[0] > 0)
         {
             tank->pos[0] += PIXEL_SIZE;
+            tank->tex_index = 6;
         }
         else if (tank->velocity[1] < 0)
         {
             tank->pos[1] -= PIXEL_SIZE;
+            tank->tex_index = 0;
         }
         else if (tank->velocity[1] > 0)
         {
             tank->pos[1] += PIXEL_SIZE;
+            tank->tex_index = 4;
         }
 
         for (int i = 0; i < 2; i++)
