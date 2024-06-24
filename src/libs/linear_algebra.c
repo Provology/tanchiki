@@ -35,23 +35,6 @@ void multiply_matrix(float matr1[4][4], float matr2[4][4])
 	}
 }
 
-void create_ortho_proj(float projection_matrix[4][4], float left, float right, float bottom, float top)
-{
-    create_mat4(projection_matrix, 1.0f);
-    projection_matrix[0][0] = 2.0 / (right - left);
-    projection_matrix[1][1] = 2.0 / (top - bottom);
-    projection_matrix[0][3] = -1 * (right + left) / (right - left);
-    projection_matrix[1][3] = -1 * (top + bottom) / (top - bottom);
-
- //   printf("l = %f, r = %f, t = %f, b = %f\n", left, right, top, bottom);
- //   float projection[4][4] = {
- //       {2.0/(800.0 - 0.0), 0.0f, 0.0f, -(800.0 + 0.0)/(800.0 - 0.0)},
- //       {0.0f, 2.0/(600.0 - 0.0), 0.0f, -(600.0 + 0.0)/(600.0 - 0.0)},
- //       {0.0f, 0.0f, -2.0/(-1.0 - 1.0), -(1.0 + (-1.0))/(1.0 - (-1.0))},
- //       {0.0f, 0.0f, 0.0f, 1.0f}
- //       };
-}
-
 void create_mat4(float matrix[4][4], float arg)
 {
 	memset(matrix, 0, 16 * sizeof(float));

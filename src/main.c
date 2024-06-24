@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <math.h>
+#include <string.h>
 #include"shader_module.h"
 #include"stb_image.h"
 #include"texture_module.h"
@@ -14,26 +15,46 @@
 
 #define PATH_BANANA "/home/ruslan/Downloads/banana.png"
 
+typedef struct s_player
+{
+    signed int velocity[2];
+} t_player;
+
+enum e_game_state
+{
+    GAME_INACTIVE = 0,
+    GAME_ACTIVE = 1
+};
+
 // images
 const char *PATH_BC = "/home/ruslan/Downloads/battle_city.jpg";
 // shaders
 const char *SHADER_VERTEX = "/home/ruslan/Desktop/PROJ/ping_pong/src/shaders/projection.vs"; 
 const char *SHADER_FRAGMENT = "/home/ruslan/Desktop/PROJ/ping_pong/src/shaders/projection.fs";
-// settings
-int Keys[1024] = {0};
-float mixValue = 0.0f;
-// unsigned int quadVAO;
-
-
 
 void processInput(GLFWwindow *window);
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mode);
-
+void render_tank(float deltaTime, t_tile *tank, unsigned int shaderProgram_tex, t_vbuff *vbuff);
 
 
 // settings
-const unsigned int SCR_WIDTH = 800;
-const unsigned int SCR_HEIGHT = 600;
+const float SCR_WIDTH = 600.0f;
+const float SCR_HEIGHT = 600.0f; // unequal width and height lead to double calculations for pixel and tile sizes and changing params in case of tank 90dg turn.
+const unsigned int MAP_SIZE = 12;
+const float TILE_SIZE = SCR_WIDTH / MAP_SIZE;
+const float PIXEL_SIZE = TILE_SIZE / 16;
+const float size[3] = {TILE_SIZE, TILE_SIZE, 1.0f};
+const float angle = 0.0f;
+const float color[3] = {1.0, 1.0, 1.0};
+
+// settings
+int keys[1024] = {0};
+float mixValue = 0.0f;
+t_player player = {0};
+enum e_game_state game_state = GAME_ACTIVE;
+// unsigned int quadVAO;
+
+
 
 int main()
 {
@@ -47,21 +68,16 @@ int main()
     float currentFrame = 0;
     float lastFrame = 0.0f;
     float deltaTime = 0.0f;
-    float timeStep = 0;
-    float animStep = 0;
-    int tex = 0;
+//    float timeStep = 0;
+//    float animStep = 0;
+//    int tex = 0;
 
     t_tile tanks[2] = {0};
     t_tile map[100] = {0};
 
     float pos[3] = {500.0, 390.0, 0.0};
-//  float size[3] = {400.0f, 256.0f, 1.0};
-//  float size[3] = {800.0f, 600.0f, 1.0};
-    float size[3] = {80.0f, 60.0f, 1.0};
-    float angle = 0.0f;
-    float color[3] = {1.0, 1.0, 1.0};
 
-     glfw_init();
+    glfw_init();
     error = glfw_window(&window, SCR_WIDTH, SCR_HEIGHT);
     if(error < 0)
     {
@@ -84,6 +100,13 @@ int main()
 //    printf("%d, %d, %d\n", textures[0], textures[1], textures[2]);
 
 
+    create_ortho_proj(0.0f, SCR_WIDTH, 0.0f, SCR_HEIGHT); 
+    for (int i = 0; i < 2; i++)
+    {
+        memcpy(tanks[i].texture, textures, sizeof(textures)); 
+        memcpy(tanks[i].pos, pos, sizeof(pos)); 
+    }
+//    printf("tex = %u, pos = %u\n", sizeof(textures), sizeof(pos));
     // render loop
     // -----------
     while (!glfwWindowShouldClose(window))
@@ -95,12 +118,19 @@ int main()
         lastFrame = currentFrame;
         glfwPollEvents();
 
+        // update game state
+        //
+        for (int i = 0; i < 2; i++)
+        {
+            tanks[i].velocity[0] = 0;
+            tanks[i].velocity[1] = 0;
+        }
+
         // input
         // -----
         processInput(window);
-
-        // update game state
-        //
+        memcpy(tanks[0].velocity, player.velocity, sizeof(player.velocity));
+//        printf("%u\n", sizeof(player.velocity));
 
         // render
         // ------
@@ -108,47 +138,30 @@ int main()
         glClear(GL_COLOR_BUFFER_BIT);
 
         // create transformations
-        animStep += deltaTime;
-        timeStep += deltaTime;
-//        printf("%f\n", timeStep);
-        if (animStep > 0.1)
-        {
-            tex = (tex + 1) % 2; // 2 - number of frames in animation loop
-            animStep = 0;
-        }
-        if (timeStep > 0.05)
-        {
-            pos[1] -= 5.0;
-            if (pos[1] <= 20.0)
-            {
-                pos[1] = 20.0;
-            }
-            timeStep = 0;
-        }
+        render_tank(deltaTime, &tanks[0], shaderProgram_tex, &vbuff);
+        render_tank(deltaTime, &tanks[1], shaderProgram_tex, &vbuff);
+//        DrawSprite(shaderProgram_tex, &vbuff, tanks[0].texture[tanks[0].tex], tanks[0].pos, size, angle, color);
+//        printf("%f, %f\n", tanks[0].pos[0], tanks[0].pos[1]);
+//        printf("%d, %d\n", tanks[0].texture[0], textures[0]);
 
-        tanks[0].pos[0] = pos[0];
-        tanks[0].pos[1] = pos[1];
-        tanks[0].pos[2] = pos[2];
 
-    	DrawSprite(shaderProgram_tex, &vbuff, textures[tex], tanks[0].pos, size, angle, color, SCR_WIDTH, SCR_HEIGHT);
-        for (int i = 0; i < 10; i++)
+
+        for (int i = 0; i < 12; i++)
         {
-            map[i].pos[0] = 80.0;
-            map[i].pos[1] = 60.0 * i;
-        	DrawSprite(shaderProgram_tex, &vbuff, textures[2], map[i].pos, size, angle, color, SCR_WIDTH, SCR_HEIGHT);
+            map[i].pos[0] = TILE_SIZE;//width;
+            map[i].pos[1] = TILE_SIZE * i;// height * i;
+//        	DrawSprite(shaderProgram_tex, &vbuff, textures[2], map[i].pos, size, angle, color);
 //            printf("%f\n", pos[0]);
         }
 //        printf("-------------\n");
-        for (int i = 0; i < 10; i++)
+        for (int i = 0; i < 12; i++)
         {
-            map[i].pos[1] = 360.0;
-            map[i].pos[0] = 80.0 * i;
-        	DrawSprite(shaderProgram_tex, &vbuff, textures[2], map[i].pos, size, angle, color, SCR_WIDTH, SCR_HEIGHT);
+            map[i].pos[1] = TILE_SIZE * 10; // nth row
+            map[i].pos[0] = TILE_SIZE * i;
+//        	DrawSprite(shaderProgram_tex, &vbuff, textures[2], map[i].pos, size, angle, color);
 //            printf("%f\n", pos[0]);
         }
 //        printf("-------------\n");
-//    	DrawSprite(shaderProgram_tex, &vbuff, textures[tex], pos, size, angle, color); 
-//        pos[0] = 700.0;
 
         glfwSwapBuffers(window);
     }
@@ -165,13 +178,100 @@ int main()
     return 0;
 }
 
+void render_tank(float deltaTime, t_tile *tank, unsigned int shaderProgram_tex, t_vbuff *vbuff)
+{
+    tank->animStep += deltaTime;
+    tank->timeStep += deltaTime;
+//    printf("%f\n", tank->timeStep);
+    if (tank->animStep > 0.1)
+    {
+
+//        printf("animbranch\n");
+        tank->tex = (tank->tex + 1) % 2; // 2 - number of frames in animation loop
+        tank->animStep = 0;
+    }
+    if (tank->timeStep > 0.05)
+    {
+//        printf("vx=%d, vy=%d\n", tank->velocity[0], tank->velocity[1]);
+        if (tank->velocity[0] < 0)
+        {
+            tank->pos[0] -= PIXEL_SIZE;
+//            printf("x=%f, y=%f\n", tank->pos[0], tank->pos[1]);
+        }
+        else if (tank->velocity[0] > 0)
+        {
+            tank->pos[0] += PIXEL_SIZE;
+        }
+        else if (tank->velocity[1] < 0)
+        {
+            tank->pos[1] -= PIXEL_SIZE;
+        }
+        else if (tank->velocity[1] > 0)
+        {
+            tank->pos[1] += PIXEL_SIZE;
+        }
+
+        for (int i = 0; i < 2; i++)
+        {
+             if (tank->pos[i] <= 0.0)
+             {
+                 tank->pos[i] = 0.0;
+             }
+             else if (tank->pos[i] >= TILE_SIZE * (MAP_SIZE - 1))
+             {
+                 tank->pos[i] = TILE_SIZE * (MAP_SIZE - 1);
+             }
+        }
+        tank->timeStep = 0;
+    }
+//    printf("%f, %f, %f\n", tank->pos[0], tank->pos[1], tank->pos[2]);
+//    printf("shader2=%d\n", shaderProgram_tex);
+    DrawSprite(shaderProgram_tex, vbuff, tank->texture[tank->tex], tank->pos, size, angle, color);
+
+}
 
 // process all input: query GLFW whether relevant keys are pressed/released this frame and react accordingly
 // ---------------------------------------------------------------------------------------------------------
 void processInput(GLFWwindow *window)
 {
+    static int pause_pressed = 0;
+//    static int i = 0;
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(window, 1);
+    if (game_state == GAME_ACTIVE)
+    {
+        player.velocity[0] = 0;
+        player.velocity[1] = 0;
+        if (keys[GLFW_KEY_A])
+        {
+            player.velocity[0] = -1;
+//            printf("left=%d, right=%d, %d\n", keys[GLFW_KEY_A], keys[GLFW_KEY_D], i);
+//            i++;
+        }
+        else if (keys[GLFW_KEY_D])
+        {
+            player.velocity[0] = 1;
+//            printf("right\n");
+        }
+        else if (keys[GLFW_KEY_W])
+        {
+            player.velocity[1] = 1;
+//            printf("up\n");
+        }
+        else if (keys[GLFW_KEY_S])
+        {
+            player.velocity[1] = -1;
+//            printf("down\n");
+        }
+    }
+    if (keys[GLFW_KEY_SPACE] && !pause_pressed)
+    {
+        game_state = !game_state;
+        printf("game_state = %d\n", game_state);
+    }
+    pause_pressed = keys[GLFW_KEY_SPACE];
+//    memset(keys, 0, sizeof(keys));
+//    printf("size=%u\n", sizeof(keys));
 }
 
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mode)
@@ -182,9 +282,9 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
     if (key >= 0 && key < 1024)
     {
         if (action == GLFW_PRESS)
-            Keys[key] = 1;
+            keys[key] = 1;
         else if (action == GLFW_RELEASE)
-            Keys[key] = 0;
+            keys[key] = 0;
     }
 }
 
