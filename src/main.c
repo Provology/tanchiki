@@ -12,6 +12,7 @@
 //#include"linear_algebra.h"
 //#include"transformations.h"
 #include"render.h"
+#include"read_map.h"
 
 #define PATH_BANANA "/home/ruslan/Downloads/banana.png"
 
@@ -28,6 +29,8 @@ enum e_game_state
 
 // images
 const char *PATH_BC = "/home/ruslan/Downloads/battle_city.jpg";
+// map
+const char *PATH_MAP = "/home/ruslan/Desktop/PROJ/ping_pong/src/map.txt";
 // shaders
 const char *SHADER_VERTEX = "/home/ruslan/Desktop/PROJ/ping_pong/src/shaders/projection.vs"; 
 const char *SHADER_FRAGMENT = "/home/ruslan/Desktop/PROJ/ping_pong/src/shaders/projection.fs";
@@ -50,6 +53,7 @@ const float color[3] = {1.0, 1.0, 1.0};
 // settings
 int keys[1024] = {0};
 // float mixValue = 0.0f;
+// int col = 0;
 t_player player = {0};
 enum e_game_state game_state = GAME_ACTIVE;
 // unsigned int quadVAO;
@@ -62,7 +66,7 @@ int main()
     GLFWwindow *window = NULL;
     int error = 0;
     t_vbuff vbuff = {0};
-    unsigned int textures[10];
+    unsigned int textures[17];
     unsigned int shaderProgram_tex;//TODO create shader program object
 
     float currentFrame = 0;
@@ -73,7 +77,7 @@ int main()
 //    int tex = 0;
 
     t_tile tanks[2] = {0};
-    t_tile map[100] = {0};
+    t_tile map[12][12] = {0};
 
     float pos[3] = {500.0, 390.0, 0.0};
 
@@ -94,7 +98,7 @@ int main()
 
     // load and create a texture 
     // -------------------------
-    texture_loader(10, textures, PATH_BC);
+    texture_loader(17, textures, PATH_BC);
     // tell opengl for each sampler to which texture unit it belongs to (only has to be done once)
     glUseProgram(shaderProgram_tex);
 //    printf("%d, %d, %d\n", textures[0], textures[1], textures[2]);
@@ -105,8 +109,22 @@ int main()
     {
         memcpy(tanks[i].texture, textures, sizeof(textures)); 
         memcpy(tanks[i].pos, pos, sizeof(pos)); 
+        memcpy(tanks[i].color, color, sizeof(color)); 
     }
 //    printf("tex = %u, pos = %u\n", sizeof(textures), sizeof(pos));
+    read_map(map, PATH_MAP);
+    
+    for (int i = 0; i < 12; i++)
+    {
+        for (int j = 0; j < 12; j++)
+        {
+            map[i][j].pos[0] = TILE_SIZE * j;//width;
+            map[i][j].pos[1] = TILE_SIZE * i;// height * i;
+        }
+    }
+
+//    printf("%d\n", textures[16]);
+
     // render loop
     // -----------
     while (!glfwWindowShouldClose(window))
@@ -130,6 +148,14 @@ int main()
         // -----
         processInput(window);
         memcpy(tanks[0].velocity, player.velocity, sizeof(player.velocity));
+
+       // TODO experimental color change
+       // tanks[0].color[0] = sin(col);
+       // tanks[0].color[1] = sin(col);
+       // tanks[0].color[2] = sin(col);
+       // printf("sin(col) = %f, col = %d\n", sin(col), col);
+
+ 
 //        printf("%u\n", sizeof(player.velocity));
 
         // render
@@ -138,30 +164,23 @@ int main()
         glClear(GL_COLOR_BUFFER_BIT);
 
         // create transformations
+
+        for (int i = 0; i < 12; i++)
+        {
+            for (int j = 0; j < 12; j++)
+            {
+           	    DrawSprite(shaderProgram_tex, &vbuff, map[i][j].texture[0], map[i][j].pos, size, angle, color);
+//                printf("map[%d][%d] = %d\n", i, j, map[i][j].texture[0]);
+            }
+//            printf("%f\n", pos[0]);
+        }
+//        printf("-------------\n");
+
         render_tank(deltaTime, &tanks[0], shaderProgram_tex, &vbuff);
         render_tank(deltaTime, &tanks[1], shaderProgram_tex, &vbuff);
-//        DrawSprite(shaderProgram_tex, &vbuff, tanks[0].texture[tanks[0].tex], tanks[0].pos, size, angle, color);
 //        printf("%f, %f\n", tanks[0].pos[0], tanks[0].pos[1]);
 //        printf("%d, %d\n", tanks[0].texture[0], textures[0]);
 
-
-
-        for (int i = 0; i < 12; i++)
-        {
-            map[i].pos[0] = TILE_SIZE;//width;
-            map[i].pos[1] = TILE_SIZE * i;// height * i;
-//        	DrawSprite(shaderProgram_tex, &vbuff, textures[2], map[i].pos, size, angle, color);
-//            printf("%f\n", pos[0]);
-        }
-//        printf("-------------\n");
-        for (int i = 0; i < 12; i++)
-        {
-            map[i].pos[1] = TILE_SIZE * 10; // nth row
-            map[i].pos[0] = TILE_SIZE * i;
-//        	DrawSprite(shaderProgram_tex, &vbuff, textures[2], map[i].pos, size, angle, color);
-//            printf("%f\n", pos[0]);
-        }
-//        printf("-------------\n");
 
         glfwSwapBuffers(window);
     }
@@ -185,7 +204,6 @@ void render_tank(float deltaTime, t_tile *tank, unsigned int shaderProgram_tex, 
 //    printf("%f\n", tank->timeStep);
     if (tank->animStep > 0.1)
     {
-
 //        printf("animbranch\n");
         tank->tex = ((tank->tex + 1) % 2) + tank->tex_index; // 2 - number of frames in animation loop
         tank->animStep = 0;
@@ -230,7 +248,7 @@ void render_tank(float deltaTime, t_tile *tank, unsigned int shaderProgram_tex, 
     }
 //    printf("%f, %f, %f\n", tank->pos[0], tank->pos[1], tank->pos[2]);
 //    printf("shader2=%d\n", shaderProgram_tex);
-    DrawSprite(shaderProgram_tex, vbuff, tank->texture[tank->tex], tank->pos, size, angle, color);
+    DrawSprite(shaderProgram_tex, vbuff, tank->texture[tank->tex], tank->pos, size, angle, tank->color);
 
 }
 
@@ -239,6 +257,8 @@ void render_tank(float deltaTime, t_tile *tank, unsigned int shaderProgram_tex, 
 void processInput(GLFWwindow *window)
 {
     static int pause_pressed = 0;
+//    static int color_inc = 0;
+//    static int color_dec = 0;
 //    static int i = 0;
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(window, 1);
@@ -274,7 +294,19 @@ void processInput(GLFWwindow *window)
         printf("game_state = %d\n", game_state);
     }
     pause_pressed = keys[GLFW_KEY_SPACE];
-//    memset(keys, 0, sizeof(keys));
+
+//    if (keys[GLFW_KEY_Q] && !color_inc)
+//    {
+//        col++;
+//    }
+//    color_inc = keys[GLFW_KEY_Q];
+//    if (keys[GLFW_KEY_E] && !color_dec)
+//    {
+//        col--;
+//    }
+//    color_dec = keys[GLFW_KEY_E];
+
+
 //    printf("size=%u\n", sizeof(keys));
 }
 
