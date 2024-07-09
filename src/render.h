@@ -15,6 +15,7 @@ typedef struct s_tile
     float angle;
     float color[3];
     unsigned int texture[10]; //TODO animations of explosion, idle, all directions
+    int stop[4];
 } t_tile;
 
 

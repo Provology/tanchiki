@@ -19,8 +19,9 @@ unsigned int read_map(t_tile map[12][12], const char *Path)
                 len = read(fd, &buf, sizeof(buf));
                 if (buf == 'B')
                 {
+//                    map[i][j].texture[0] = j;
                     map[i][j].texture[0] = 17;
-                    printf("map[%d][%d]\n", i, j);
+//                    printf("map[%d][%d]\n", i, j);
                 }
                 else
                 {

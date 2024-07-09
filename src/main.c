@@ -38,6 +38,8 @@ const char *SHADER_FRAGMENT = "/home/ruslan/Desktop/PROJ/ping_pong/src/shaders/p
 void processInput(GLFWwindow *window);
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mode);
 void render_tank(float deltaTime, t_tile *tank, unsigned int shaderProgram_tex, t_vbuff *vbuff);
+void locate_tank_on_map(int *tank_cell, t_tile *tank);
+void is_there_way(int *tank_cell, t_tile *tank, t_tile map[12][12]);
 
 
 // settings
@@ -76,10 +78,10 @@ int main()
 //    float animStep = 0;
 //    int tex = 0;
 
-    t_tile tanks[2] = {0};
+    t_tile tanks[2] = {{0}};
     t_tile map[12][12] = {0};
-
-    float pos[3] = {500.0, 390.0, 0.0};
+    float pos[3] = {TILE_SIZE * 9, TILE_SIZE * 7, 0.0};
+    int tank_cell[2] = {0};
 
     glfw_init();
     error = glfw_window(&window, SCR_WIDTH, SCR_HEIGHT);
@@ -107,9 +109,12 @@ int main()
     create_ortho_proj(0.0f, SCR_WIDTH, 0.0f, SCR_HEIGHT); 
     for (int i = 0; i < 2; i++)
     {
-        memcpy(tanks[i].texture, textures, sizeof(textures)); 
+        for (int j = 0; j < 10; j++)
+        {
+            tanks[i].texture[j] = textures[j];
+        }
         memcpy(tanks[i].pos, pos, sizeof(pos)); 
-        memcpy(tanks[i].color, color, sizeof(color)); 
+        memcpy(tanks[i].color, color, sizeof(color));
     }
 //    printf("tex = %u, pos = %u\n", sizeof(textures), sizeof(pos));
     read_map(map, PATH_MAP);
@@ -123,6 +128,7 @@ int main()
         }
     }
 
+    printf("left = %d, right = %d, top = %d, bottom = %d\n", tanks[0].stop[0], tanks[0].stop[1], tanks[0].stop[2], tanks[0].stop[3]);
 //    printf("%d\n", textures[16]);
 
     // render loop
@@ -176,6 +182,10 @@ int main()
         }
 //        printf("-------------\n");
 
+        locate_tank_on_map(tank_cell, &tanks[0]);
+        is_there_way(tank_cell, &tanks[0], map);
+//        printf("x=%d, y=%d, ", tank_cell[0], tank_cell[1]);
+//        printf("left = %d, right = %d, top = %d, bottom = %d\n", tanks[0].stop[0], tanks[0].stop[1], tanks[0].stop[2], tanks[0].stop[3]);
         render_tank(deltaTime, &tanks[0], shaderProgram_tex, &vbuff);
         render_tank(deltaTime, &tanks[1], shaderProgram_tex, &vbuff);
 //        printf("%f, %f\n", tanks[0].pos[0], tanks[0].pos[1]);
@@ -197,6 +207,104 @@ int main()
     return 0;
 }
 
+void locate_tank_on_map(int *tank_cell, t_tile *tank)
+{
+    tank_cell[0] = (tank->pos[0] + (TILE_SIZE / 2)) / TILE_SIZE;
+    tank_cell[1] = (tank->pos[1] + (TILE_SIZE / 2)) / TILE_SIZE;
+    printf("tank[%d][%d], meanwhile PIXEL_SIZE=%f\n", tank_cell[0], tank_cell[1], PIXEL_SIZE);  
+}
+
+void is_there_way(int *tank_cell, t_tile *tank, t_tile map[12][12])
+{
+    int x = tank_cell[0];
+    int y = tank_cell[1];
+    
+    memset(tank->stop, 0, sizeof(*tank->stop) * 4);
+    if (x > 0 && (map[y + 1][x - 1].texture[0] != 0 || map[y][x - 1].texture[0] != 0 || (y > 0 && map[y - 1][x - 1].texture[0] != 0)) && (tank->pos[0] - (map[y][x - 1].pos[0] + TILE_SIZE) < PIXEL_SIZE))
+    {
+        if ((y < MAP_SIZE - 1) && map[y + 1][x - 1].texture[0] != 0 && tank->pos[1] + TILE_SIZE - PIXEL_SIZE - map[y + 1][x - 1].pos[1] > 0.0)
+        {
+            tank->stop[0] = 1; // left
+            printf("stop1\n");
+        }
+        if (map[y][x - 1].texture[0] != 0) 
+        {
+            tank->stop[0] = 1; // left
+            printf("stop2\n");
+        }
+        if (y > 0 && map[y - 1][x - 1].texture[0] != 0 && tank->pos[1] + PIXEL_SIZE < map[y - 1][x - 1].pos[1] + TILE_SIZE)
+        {
+            tank->stop[0] = 1; // left
+            printf("stop3\n");
+        }
+    }
+    if ((x < MAP_SIZE - 1) && (map[y + 1][x + 1].texture[0] != 0 || map[y][x + 1].texture[0] != 0 || (y > 0 && map[y - 1][x + 1].texture[0] != 0)) && (map[y][x + 1].pos[0] -  (tank->pos[0] + TILE_SIZE) < PIXEL_SIZE))
+    {
+        if ((y < MAP_SIZE - 1) && map[y + 1][x + 1].texture[0] != 0 && tank->pos[1] + TILE_SIZE - PIXEL_SIZE - map[y + 1][x + 1].pos[1] > 0.0)
+        {
+            tank->stop[1] = 1; // right
+            printf("stop r1\n");
+        }
+        if (map[y][x + 1].texture[0] != 0) 
+        {
+            tank->stop[1] = 1; // right
+            printf("stop r2\n");
+        }
+        if (y > 0 && map[y - 1][x + 1].texture[0] != 0 && tank->pos[1] + PIXEL_SIZE < map[y - 1][x + 1].pos[1] + TILE_SIZE)
+        {
+            tank->stop[1] = 1; // right
+            printf("stop r3\n");
+        }
+    }
+    if (y > 0 && (map[y - 1][x + 1].texture[0] != 0 || map[y - 1][x].texture[0] != 0 || (x > 0 && map[y - 1][x - 1].texture[0] != 0)) && (tank->pos[1] - map[y - 1][x].pos[1] - TILE_SIZE < PIXEL_SIZE))
+    {
+        if (x < MAP_SIZE - 1 && map[y - 1][x + 1].texture[0] != 0 && tank->pos[0] + TILE_SIZE - PIXEL_SIZE - map[y - 1][x + 1].pos[0] > 0.0)
+        {
+            tank->stop[2] = 1; // down
+            printf("stop d1\n");
+        }
+        if (map[y - 1][x].texture[0] != 0) 
+        {
+            tank->stop[2] = 1; // down
+            printf("stop d2\n");
+        }
+        if (x > 0 && map[y - 1][x - 1].texture[0] != 0 && tank->pos[0] + PIXEL_SIZE < map[y - 1][x - 1].pos[0] + TILE_SIZE)
+        {
+            tank->stop[2] = 1; // down
+            printf("stop d3\n");
+        }
+    }
+    if ((y < MAP_SIZE - 1) && (map[y + 1][x + 1].texture[0] != 0 || map[y + 1][x].texture[0] != 0 || (x > 0 && map[y + 1][x - 1].texture[0] != 0)) && (map[y + 1][x].pos[1] -  (tank->pos[1] + TILE_SIZE) < PIXEL_SIZE))
+    {
+        if ((x < MAP_SIZE - 1) && map[y + 1][x + 1].texture[0] != 0 && tank->pos[0] + TILE_SIZE - PIXEL_SIZE - map[y + 1][x + 1].pos[0] > 0.0)
+        {
+            tank->stop[3] = 1; // up 
+            printf("stop u1\n");
+        }
+        if (map[y + 1][x].texture[0] != 0) 
+        {
+            tank->stop[3] = 1; // up 
+            printf("stop u2\n");
+        }
+        if (x > 0 && map[y + 1][x - 1].texture[0] != 0 && tank->pos[0] + PIXEL_SIZE < map[y + 1][x - 1].pos[0] + TILE_SIZE)
+        {
+            tank->stop[3] = 1; // up 
+            printf("stop u3\n");
+        }
+    }
+    printf("pos x=%f, y = %f map[%d][%d] = {%f, %f}\n", tank->pos[0], tank->pos[1], y, x, map[y][x].pos[0], map[y][x].pos[1]);
+}
+
+// void is_there_way(int *tank_cell, t_tile *tank, t_tile map[12][12])
+// {
+//      int x = tank_cell[0];
+//      int y = tank_cell[1];
+//      memset(tank->stop, 0, sizeof(*tank->stop) * 4);
+// 
+// 
+//     printf("pos x=%f, y = %f map[%d][%d] = {%f, %f}\n", tank->pos[0], tank->pos[1], y, x, map[y][x].pos[0], map[y][x].pos[1]);
+// }
+
 void render_tank(float deltaTime, t_tile *tank, unsigned int shaderProgram_tex, t_vbuff *vbuff)
 {
     tank->animStep += deltaTime;
@@ -208,40 +316,56 @@ void render_tank(float deltaTime, t_tile *tank, unsigned int shaderProgram_tex, 
         tank->tex = ((tank->tex + 1) % 2) + tank->tex_index; // 2 - number of frames in animation loop
         tank->animStep = 0;
     }
-    if (tank->timeStep > 0.05)
+    if (tank->timeStep > 0.05)// TODO separate tex_index and pos in two funcs
     {
 //        printf("vx=%d, vy=%d\n", tank->velocity[0], tank->velocity[1]);
+        // direction
         if (tank->velocity[0] < 0)
         {
-            tank->pos[0] -= PIXEL_SIZE;
             tank->tex_index = 2;
 //            printf("x=%f, y=%f\n", tank->pos[0], tank->pos[1]);
         }
         else if (tank->velocity[0] > 0)
         {
-            tank->pos[0] += PIXEL_SIZE;
             tank->tex_index = 6;
         }
         else if (tank->velocity[1] < 0)
         {
-            tank->pos[1] -= PIXEL_SIZE;
             tank->tex_index = 0;
         }
         else if (tank->velocity[1] > 0)
         {
-            tank->pos[1] += PIXEL_SIZE;
             tank->tex_index = 4;
         }
+        // movement
+        if (tank->velocity[0] < 0 && !tank->stop[0])
+        {
+            tank->pos[0] -= PIXEL_SIZE;
+//            printf("x=%f, y=%f\n", tank->pos[0], tank->pos[1]);
+        }
+        else if (tank->velocity[0] > 0 && !tank->stop[1])
+        {
+            tank->pos[0] += PIXEL_SIZE;
+        }
+        else if (tank->velocity[1] < 0 && !tank->stop[2])
+        {
+            tank->pos[1] -= PIXEL_SIZE;
+        }
+        else if (tank->velocity[1] > 0 && !tank->stop[3])
+        {
+            tank->pos[1] += PIXEL_SIZE;
+        }
+
 
         for (int i = 0; i < 2; i++)
         {
-             if (tank->pos[i] <= 0.0)
+             if (tank->pos[i] + PIXEL_SIZE < 0.0)
              {
-                 tank->pos[i] = 0.0;
+                 tank->pos[i] = 0.0 - PIXEL_SIZE;
              }
-             else if (tank->pos[i] >= TILE_SIZE * (MAP_SIZE - 1))
+             else if (tank->pos[i] - PIXEL_SIZE > TILE_SIZE * (MAP_SIZE - 1))
              {
-                 tank->pos[i] = TILE_SIZE * (MAP_SIZE - 1);
+                 tank->pos[i] = TILE_SIZE * (MAP_SIZE - 1) + PIXEL_SIZE;
              }
         }
         tank->timeStep = 0;
