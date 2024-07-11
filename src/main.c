@@ -15,6 +15,7 @@
 #include"read_map.h"
 
 #define PATH_BANANA "/home/ruslan/Downloads/banana.png"
+#define MAP_SIZE 12
 
 typedef struct s_player
 {
@@ -45,7 +46,7 @@ void is_there_way(int *tank_cell, t_tile *tank, t_tile map[12][12]);
 // settings
 const float SCR_WIDTH = 600.0f;
 const float SCR_HEIGHT = 600.0f; // unequal width and height lead to double calculations for pixel and tile sizes and changing params in case of tank 90dg turn.
-const unsigned int MAP_SIZE = 12;
+// const unsigned int MAP_SIZE = 12;
 const float TILE_SIZE = SCR_WIDTH / MAP_SIZE;
 const float PIXEL_SIZE = TILE_SIZE / 16;
 const float size[3] = {TILE_SIZE, TILE_SIZE, 1.0f};
@@ -79,9 +80,10 @@ int main()
 //    int tex = 0;
 
     t_tile tanks[2] = {{0}};
-    t_tile map[12][12] = {0};
+    t_tile map[MAP_SIZE][MAP_SIZE] = {0};
     float pos[3] = {TILE_SIZE * 9, TILE_SIZE * 7, 0.0};
     int tank_cell[2] = {0};
+    t_tile list[3][3] = {0};
 
     glfw_init();
     error = glfw_window(&window, SCR_WIDTH, SCR_HEIGHT);
@@ -119,9 +121,9 @@ int main()
 //    printf("tex = %u, pos = %u\n", sizeof(textures), sizeof(pos));
     read_map(map, PATH_MAP);
     
-    for (int i = 0; i < 12; i++)
+    for (int i = 0; i < MAP_SIZE; i++)
     {
-        for (int j = 0; j < 12; j++)
+        for (int j = 0; j < MAP_SIZE; j++)
         {
             map[i][j].pos[0] = TILE_SIZE * j;//width;
             map[i][j].pos[1] = TILE_SIZE * i;// height * i;
@@ -171,9 +173,9 @@ int main()
 
         // create transformations
 
-        for (int i = 0; i < 12; i++)
+        for (int i = 0; i < MAP_SIZE; i++)
         {
-            for (int j = 0; j < 12; j++)
+            for (int j = 0; j < MAP_SIZE; j++)
             {
            	    DrawSprite(shaderProgram_tex, &vbuff, map[i][j].texture[0], map[i][j].pos, size, angle, color);
 //                printf("map[%d][%d] = %d\n", i, j, map[i][j].texture[0]);
@@ -184,6 +186,7 @@ int main()
 
         locate_tank_on_map(tank_cell, &tanks[0]);
         is_there_way(tank_cell, &tanks[0], map);
+        obstacle_list(tank_cell[0], tank_cell[1], list, map);
 //        printf("x=%d, y=%d, ", tank_cell[0], tank_cell[1]);
 //        printf("left = %d, right = %d, top = %d, bottom = %d\n", tanks[0].stop[0], tanks[0].stop[1], tanks[0].stop[2], tanks[0].stop[3]);
         render_tank(deltaTime, &tanks[0], shaderProgram_tex, &vbuff);
@@ -211,10 +214,10 @@ void locate_tank_on_map(int *tank_cell, t_tile *tank)
 {
     tank_cell[0] = (tank->pos[0] + (TILE_SIZE / 2)) / TILE_SIZE;
     tank_cell[1] = (tank->pos[1] + (TILE_SIZE / 2)) / TILE_SIZE;
-    printf("tank[%d][%d], meanwhile PIXEL_SIZE=%f\n", tank_cell[0], tank_cell[1], PIXEL_SIZE);  
+//    printf("tank[%d][%d], meanwhile PIXEL_SIZE=%f\n", tank_cell[0], tank_cell[1], PIXEL_SIZE);  
 }
 
-void is_there_way(int *tank_cell, t_tile *tank, t_tile map[12][12])
+void is_there_way(int *tank_cell, t_tile *tank, t_tile map[MAP_SIZE][MAP_SIZE])
 {
     int x = tank_cell[0];
     int y = tank_cell[1];
@@ -295,6 +298,66 @@ void is_there_way(int *tank_cell, t_tile *tank, t_tile map[12][12])
     printf("pos x=%f, y = %f map[%d][%d] = {%f, %f}\n", tank->pos[0], tank->pos[1], y, x, map[y][x].pos[0], map[y][x].pos[1]);
 }
 
+void obstacle_list(int x, int y, t_tile *list[3][3], t_tile map[MAP_SIZE][MAP_SIZE])
+{
+    for (int i = 0; i < 3; i++)
+    {
+        for (int j = 0; j < 3; j++)
+        {
+            list[i][j] = NULL;
+        }
+    }
+    for (int i = 0; i < 3; i++)
+    {
+        if ((MAP_SIZE - 1 == y && 0 == i) || (0 == y && 2 == i))
+        {
+            continue;
+        }
+        for (int j = 0; j < 3; j++)
+        {
+            if ((MAP_SIZE - 1 == x && 2 == j) || (0 == x && 0 == j) || (1 == i && 1 == j))
+            {
+//                printf("x,y,list=%d,%d,%d\n", j, i, list[i][j]);
+                continue;
+            }
+            if (map[y + 1 - i][x - 1 + j].texture[0] != 0)
+            {
+                list[i][j] = &map[y + 1 - i][x - 1 + j];
+            }
+//            printf("list[%d][%d] = %f\n", i, j, list[i][j]->pos[0]);
+        }
+    }
+    printf("list(x=%d, y=%d\n", x, y);
+    for (int i = 0; i < 3; i++)
+    {
+        for (int j = 0; j < 3; j++)
+        {
+            if (list[i][j])
+            {
+                printf("%3d [%d][%d], ", (int)list[i][j]->pos[0], i, j);
+            }
+            else
+            {
+                printf("NULL[%d][%d], ", i, j);
+            }
+        }
+        printf("\n");
+    }
+    printf(")\n");
+}
+
+void left_block()
+{
+//        if ((y < MAP_SIZE - 1) && map[y + 1][x - 1].texture[0] != 0 && tank->pos[1] + TILE_SIZE - PIXEL_SIZE - map[y + 1][x - 1].pos[1] > 0.0)
+//        if (y > 0 && map[y - 1][x - 1].texture[0] != 0 && tank->pos[1] + PIXEL_SIZE < map[y - 1][x - 1].pos[1] + TILE_SIZE)
+//        if ((y < MAP_SIZE - 1) && map[y + 1][x + 1].texture[0] != 0 && tank->pos[1] + TILE_SIZE - PIXEL_SIZE - map[y + 1][x + 1].pos[1] > 0.0)
+//        if (y > 0 && map[y - 1][x + 1].texture[0] != 0 && tank->pos[1] + PIXEL_SIZE < map[y - 1][x + 1].pos[1] + TILE_SIZE)
+//        if (x < MAP_SIZE - 1 && map[y - 1][x + 1].texture[0] != 0 && tank->pos[0] + TILE_SIZE - PIXEL_SIZE - map[y - 1][x + 1].pos[0] > 0.0)
+//        if (x > 0 && map[y - 1][x - 1].texture[0] != 0 && tank->pos[0] + PIXEL_SIZE < map[y - 1][x - 1].pos[0] + TILE_SIZE)
+//        if ((x < MAP_SIZE - 1) && map[y + 1][x + 1].texture[0] != 0 && tank->pos[0] + TILE_SIZE - PIXEL_SIZE - map[y + 1][x + 1].pos[0] > 0.0)
+//        if (x > 0 && map[y + 1][x - 1].texture[0] != 0 && tank->pos[0] + PIXEL_SIZE < map[y + 1][x - 1].pos[0] + TILE_SIZE)
+//
+}
 // void is_there_way(int *tank_cell, t_tile *tank, t_tile map[12][12])
 // {
 //      int x = tank_cell[0];
