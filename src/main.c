@@ -41,6 +41,7 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 void render_tank(float deltaTime, t_tile *tank, unsigned int shaderProgram_tex, t_vbuff *vbuff);
 void locate_tank_on_map(int *tank_cell, t_tile *tank);
 void is_there_way(int *tank_cell, t_tile *tank, t_tile map[12][12]);
+void is_there_way2(t_tile *list[3][3], t_tile *tank);
 
 
 // settings
@@ -185,8 +186,9 @@ int main()
 //        printf("-------------\n");
 
         locate_tank_on_map(tank_cell, &tanks[0]);
-        is_there_way(tank_cell, &tanks[0], map);
+//        is_there_way(tank_cell, &tanks[0], map);
         obstacle_list(tank_cell[0], tank_cell[1], list, map);
+        is_there_way2(list, &tanks[0]);
 //        printf("x=%d, y=%d, ", tank_cell[0], tank_cell[1]);
 //        printf("left = %d, right = %d, top = %d, bottom = %d\n", tanks[0].stop[0], tanks[0].stop[1], tanks[0].stop[2], tanks[0].stop[3]);
         render_tank(deltaTime, &tanks[0], shaderProgram_tex, &vbuff);
@@ -346,27 +348,107 @@ void obstacle_list(int x, int y, t_tile *list[3][3], t_tile map[MAP_SIZE][MAP_SI
     printf(")\n");
 }
 
-void left_block()
+void intersection(float *width, float *height, const float pos1[2], const float pos2[2])
 {
-//        if ((y < MAP_SIZE - 1) && map[y + 1][x - 1].texture[0] != 0 && tank->pos[1] + TILE_SIZE - PIXEL_SIZE - map[y + 1][x - 1].pos[1] > 0.0)
-//        if (y > 0 && map[y - 1][x - 1].texture[0] != 0 && tank->pos[1] + PIXEL_SIZE < map[y - 1][x - 1].pos[1] + TILE_SIZE)
-//        if ((y < MAP_SIZE - 1) && map[y + 1][x + 1].texture[0] != 0 && tank->pos[1] + TILE_SIZE - PIXEL_SIZE - map[y + 1][x + 1].pos[1] > 0.0)
-//        if (y > 0 && map[y - 1][x + 1].texture[0] != 0 && tank->pos[1] + PIXEL_SIZE < map[y - 1][x + 1].pos[1] + TILE_SIZE)
-//        if (x < MAP_SIZE - 1 && map[y - 1][x + 1].texture[0] != 0 && tank->pos[0] + TILE_SIZE - PIXEL_SIZE - map[y - 1][x + 1].pos[0] > 0.0)
-//        if (x > 0 && map[y - 1][x - 1].texture[0] != 0 && tank->pos[0] + PIXEL_SIZE < map[y - 1][x - 1].pos[0] + TILE_SIZE)
-//        if ((x < MAP_SIZE - 1) && map[y + 1][x + 1].texture[0] != 0 && tank->pos[0] + TILE_SIZE - PIXEL_SIZE - map[y + 1][x + 1].pos[0] > 0.0)
-//        if (x > 0 && map[y + 1][x - 1].texture[0] != 0 && tank->pos[0] + PIXEL_SIZE < map[y + 1][x - 1].pos[0] + TILE_SIZE)
-//
+    float left = (pos1[0] > pos2[0]) ? pos1[0] : pos2[0];
+    float right = (pos1[0] < pos2[0]) ? pos1[0] : pos2[0];
+    right += TILE_SIZE;
+    float top = (pos1[1] < pos2[1]) ? pos1[1] : pos2[1];
+    top += TILE_SIZE;
+    float bottom = (pos1[1] > pos2[1]) ? pos1[1] : pos2[1];
+    *width = right - left;
+    *height = top - bottom;
+
+
+
+//    float left = pos1[0];
+//    float right = pos2[0] + TILE_SIZE;
+//    float top = pos1[
+//    printf("pos1(%f, %f) pos2(%f, %f) width = %f, height = %f\n", pos1[0], pos1[1], pos2[0], pos2[1], *width, *height);
+//    return (width - PIXEL_SIZE >= 0.0 && height - PIXEL_SIZE >= 0.0);
 }
-// void is_there_way(int *tank_cell, t_tile *tank, t_tile map[12][12])
-// {
-//      int x = tank_cell[0];
-//      int y = tank_cell[1];
-//      memset(tank->stop, 0, sizeof(*tank->stop) * 4);
-// 
-// 
-//     printf("pos x=%f, y = %f map[%d][%d] = {%f, %f}\n", tank->pos[0], tank->pos[1], y, x, map[y][x].pos[0], map[y][x].pos[1]);
-// }
+
+void is_there_way2(t_tile *list[3][3], t_tile *tank)
+{
+    float width = 0.0;
+    float height = 0.0;
+
+    memset(tank->stop, 0, sizeof(*tank->stop) * 4);
+    for (int j = 0; j < 2; j++)
+    {
+        for (int i = 0; i < 3; i++)
+        {
+            if (list[i][0 + j * 2])
+            {
+                intersection(&width, &height, tank->pos, list[i][0 + j * 2]->pos);
+                if (width > 0.0 && height - PIXEL_SIZE > 0.0)
+                {
+                    tank->stop[0 + j] = 1;
+                    printf("j = %d, i = %d\n", j, i);
+                    break;
+                }
+            }
+        }
+    }
+//    for (int i = 0; i < 3; i++)
+//    {
+//        if (list[i][2])
+//        {
+//            intersection(&width, &height, tank->pos, list[i][2]->pos);
+//            if (width > 0.0 && height - PIXEL_SIZE > 0.0)
+//            {
+//                tank->stop[1] = 1;
+//                break;
+//            }
+//        }
+//    }
+    for (int i = 0; i < 3; i++)
+    {
+        if (list[2][i])
+        {
+            intersection(&width, &height, tank->pos, list[2][i]->pos);
+            if (width - PIXEL_SIZE > 0.0 && height > 0.0)
+            {
+                tank->stop[2] = 1;
+                break;
+            }
+        }
+    }
+    for (int i = 0; i < 3; i++)
+    {
+        if (list[0][i])
+        {
+            intersection(&width, &height, tank->pos, list[0][i]->pos);
+            if (width - PIXEL_SIZE > 0.0 && height > 0.0)
+            {
+                tank->stop[3] = 1;
+                break;
+            }
+        }
+    }
+
+//     tank->stop[0] = (
+//             (list[0][0] && intersection(tank->pos, list[0][0]->pos) && ) || 
+//             (list[1][0] && intersection(tank->pos, list[1][0]->pos)) || 
+//             (list[2][0] && intersection(tank->pos, list[2][0]->pos))
+//             );
+//     tank->stop[1] = (
+//             (list[0][2] && intersection(tank->pos, list[0][2]->pos)) || 
+//             (list[1][2] && intersection(tank->pos, list[1][2]->pos)) || 
+//             (list[2][2] && intersection(tank->pos, list[2][2]->pos))
+//             );
+//     tank->stop[2] = (
+//             (list[2][0] && intersection(tank->pos, list[2][0]->pos)) || 
+//             (list[2][1] && intersection(tank->pos, list[2][1]->pos)) || 
+//             (list[2][2] && intersection(tank->pos, list[2][2]->pos))
+//             );
+//     tank->stop[3] = (
+//             (list[0][0] && intersection(tank->pos, list[0][0]->pos)) || 
+//             (list[0][1] && intersection(tank->pos, list[0][1]->pos)) || 
+//             (list[0][2] && intersection(tank->pos, list[0][2]->pos))
+//             );
+//   printf("pos x=%f, y = %f\n", tank->pos[0], tank->pos[1]);
+}
 
 void render_tank(float deltaTime, t_tile *tank, unsigned int shaderProgram_tex, t_vbuff *vbuff)
 {
