@@ -10,7 +10,7 @@
 
 #define SPRITE_16 16
 
-void sprite_cut(char *sprite, const unsigned char *data, int width, int size)
+static void sprite_cut(char *sprite, const unsigned char *data, int width, int size)
 {
     for(int i = 0; i < 3 * size; i++)
     {

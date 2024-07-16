@@ -3,7 +3,7 @@
 #include"transformations.h"
 
 
-float projection_matrix[4][4] = {0.0f}; // TODO make static const projection matrix
+static float projection_matrix[4][4] = {0.0f}; // TODO make static const projection matrix
 
 void create_ortho_proj(float left, float right, float bottom, float top)
 {

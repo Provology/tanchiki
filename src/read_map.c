@@ -1,9 +1,9 @@
 #include<fcntl.h>
 #include<unistd.h>
 #include<string.h>
-#include"render.h"
+#include"read_map.h"
 
-unsigned int read_map(t_tile map[12][12], const char *Path)
+unsigned int read_map(t_tile map[MAP_SIZE][MAP_SIZE], const char *Path)
 {
     int fd = 0;
     int len = 0;
@@ -12,9 +12,9 @@ unsigned int read_map(t_tile map[12][12], const char *Path)
     fd = open(Path, O_RDONLY);
     if(fd)
     {
-        for (int i = 0; i < 12; i++)
+        for (int i = 0; i < MAP_SIZE; i++)
         {
-            for (int j = 0; j < 12; j++)
+            for (int j = 0; j < MAP_SIZE; j++)
             {
                 len = read(fd, &buf, sizeof(buf));
                 if (buf == 'B')
@@ -34,6 +34,6 @@ unsigned int read_map(t_tile map[12][12], const char *Path)
     // printf("len = %d\n", len);
     }
     close(fd);
-
+    return (0);
 }
 
