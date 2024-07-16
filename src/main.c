@@ -13,6 +13,7 @@
 //#include"transformations.h"
 #include"render.h"
 #include"read_map.h"
+#include"obstacle.h"
 
 #define PATH_BANANA "/home/ruslan/Downloads/banana.png"
 #define MAP_SIZE 12
@@ -28,6 +29,16 @@ enum e_game_state
     GAME_ACTIVE = 1
 };
 
+enum e_dir
+{
+    LEFT = 0,
+    RIGHT,
+    DOWN,
+    UP,
+    Q_DIRS
+};
+
+
 // images
 const char *PATH_BC = "/home/ruslan/Downloads/battle_city.jpg";
 // map
@@ -42,7 +53,7 @@ void render_tank(float deltaTime, t_tile *tank, unsigned int shaderProgram_tex, 
 void locate_tank_on_map(int *tank_cell, t_tile *tank);
 void is_there_way(int *tank_cell, t_tile *tank, t_tile map[12][12]);
 void is_there_way2(t_tile *list[3][3], t_tile *tank);
-
+void obstacle_list(int x, int y, t_tile *list[3][3], t_tile map[MAP_SIZE][MAP_SIZE]);
 
 // settings
 const float SCR_WIDTH = 600.0f;
@@ -219,86 +230,6 @@ void locate_tank_on_map(int *tank_cell, t_tile *tank)
 //    printf("tank[%d][%d], meanwhile PIXEL_SIZE=%f\n", tank_cell[0], tank_cell[1], PIXEL_SIZE);  
 }
 
-void is_there_way(int *tank_cell, t_tile *tank, t_tile map[MAP_SIZE][MAP_SIZE])
-{
-    int x = tank_cell[0];
-    int y = tank_cell[1];
-    
-    memset(tank->stop, 0, sizeof(*tank->stop) * 4);
-    if (x > 0 && (map[y + 1][x - 1].texture[0] != 0 || map[y][x - 1].texture[0] != 0 || (y > 0 && map[y - 1][x - 1].texture[0] != 0)) && (tank->pos[0] - (map[y][x - 1].pos[0] + TILE_SIZE) < PIXEL_SIZE))
-    {
-        if ((y < MAP_SIZE - 1) && map[y + 1][x - 1].texture[0] != 0 && tank->pos[1] + TILE_SIZE - PIXEL_SIZE - map[y + 1][x - 1].pos[1] > 0.0)
-        {
-            tank->stop[0] = 1; // left
-            printf("stop1\n");
-        }
-        if (map[y][x - 1].texture[0] != 0) 
-        {
-            tank->stop[0] = 1; // left
-            printf("stop2\n");
-        }
-        if (y > 0 && map[y - 1][x - 1].texture[0] != 0 && tank->pos[1] + PIXEL_SIZE < map[y - 1][x - 1].pos[1] + TILE_SIZE)
-        {
-            tank->stop[0] = 1; // left
-            printf("stop3\n");
-        }
-    }
-    if ((x < MAP_SIZE - 1) && (map[y + 1][x + 1].texture[0] != 0 || map[y][x + 1].texture[0] != 0 || (y > 0 && map[y - 1][x + 1].texture[0] != 0)) && (map[y][x + 1].pos[0] -  (tank->pos[0] + TILE_SIZE) < PIXEL_SIZE))
-    {
-        if ((y < MAP_SIZE - 1) && map[y + 1][x + 1].texture[0] != 0 && tank->pos[1] + TILE_SIZE - PIXEL_SIZE - map[y + 1][x + 1].pos[1] > 0.0)
-        {
-            tank->stop[1] = 1; // right
-            printf("stop r1\n");
-        }
-        if (map[y][x + 1].texture[0] != 0) 
-        {
-            tank->stop[1] = 1; // right
-            printf("stop r2\n");
-        }
-        if (y > 0 && map[y - 1][x + 1].texture[0] != 0 && tank->pos[1] + PIXEL_SIZE < map[y - 1][x + 1].pos[1] + TILE_SIZE)
-        {
-            tank->stop[1] = 1; // right
-            printf("stop r3\n");
-        }
-    }
-    if (y > 0 && (map[y - 1][x + 1].texture[0] != 0 || map[y - 1][x].texture[0] != 0 || (x > 0 && map[y - 1][x - 1].texture[0] != 0)) && (tank->pos[1] - map[y - 1][x].pos[1] - TILE_SIZE < PIXEL_SIZE))
-    {
-        if (x < MAP_SIZE - 1 && map[y - 1][x + 1].texture[0] != 0 && tank->pos[0] + TILE_SIZE - PIXEL_SIZE - map[y - 1][x + 1].pos[0] > 0.0)
-        {
-            tank->stop[2] = 1; // down
-            printf("stop d1\n");
-        }
-        if (map[y - 1][x].texture[0] != 0) 
-        {
-            tank->stop[2] = 1; // down
-            printf("stop d2\n");
-        }
-        if (x > 0 && map[y - 1][x - 1].texture[0] != 0 && tank->pos[0] + PIXEL_SIZE < map[y - 1][x - 1].pos[0] + TILE_SIZE)
-        {
-            tank->stop[2] = 1; // down
-            printf("stop d3\n");
-        }
-    }
-    if ((y < MAP_SIZE - 1) && (map[y + 1][x + 1].texture[0] != 0 || map[y + 1][x].texture[0] != 0 || (x > 0 && map[y + 1][x - 1].texture[0] != 0)) && (map[y + 1][x].pos[1] -  (tank->pos[1] + TILE_SIZE) < PIXEL_SIZE))
-    {
-        if ((x < MAP_SIZE - 1) && map[y + 1][x + 1].texture[0] != 0 && tank->pos[0] + TILE_SIZE - PIXEL_SIZE - map[y + 1][x + 1].pos[0] > 0.0)
-        {
-            tank->stop[3] = 1; // up 
-            printf("stop u1\n");
-        }
-        if (map[y + 1][x].texture[0] != 0) 
-        {
-            tank->stop[3] = 1; // up 
-            printf("stop u2\n");
-        }
-        if (x > 0 && map[y + 1][x - 1].texture[0] != 0 && tank->pos[0] + PIXEL_SIZE < map[y + 1][x - 1].pos[0] + TILE_SIZE)
-        {
-            tank->stop[3] = 1; // up 
-            printf("stop u3\n");
-        }
-    }
-    printf("pos x=%f, y = %f map[%d][%d] = {%f, %f}\n", tank->pos[0], tank->pos[1], y, x, map[y][x].pos[0], map[y][x].pos[1]);
-}
 
 void obstacle_list(int x, int y, t_tile *list[3][3], t_tile map[MAP_SIZE][MAP_SIZE])
 {
@@ -359,94 +290,45 @@ void intersection(float *width, float *height, const float pos1[2], const float 
     *width = right - left;
     *height = top - bottom;
 
-
-
-//    float left = pos1[0];
-//    float right = pos2[0] + TILE_SIZE;
-//    float top = pos1[
 //    printf("pos1(%f, %f) pos2(%f, %f) width = %f, height = %f\n", pos1[0], pos1[1], pos2[0], pos2[1], *width, *height);
-//    return (width - PIXEL_SIZE >= 0.0 && height - PIXEL_SIZE >= 0.0);
 }
 
 void is_there_way2(t_tile *list[3][3], t_tile *tank)
 {
     float width = 0.0;
     float height = 0.0;
+    const t_tile *obst[4][3] = {
+        {list[0][0], list[1][0], list[2][0]}, // left
+        {list[0][2], list[1][2], list[2][2]}, // right
+        {list[2][0], list[2][1], list[2][2]}, // down
+        {list[0][0], list[0][1], list[0][2]}// up
+    };// iterate this obst array instead of list
 
     memset(tank->stop, 0, sizeof(*tank->stop) * 4);
-    for (int j = 0; j < 2; j++)
+    for (int dir = 0; dir < Q_DIRS; dir++)
     {
         for (int i = 0; i < 3; i++)
         {
-            if (list[i][0 + j * 2])
+            if (obst[dir][i])
             {
-                intersection(&width, &height, tank->pos, list[i][0 + j * 2]->pos);
-                if (width > 0.0 && height - PIXEL_SIZE > 0.0)
+                intersection(&width, &height, tank->pos, obst[dir][i]->pos);
+                if (LEFT == dir || RIGHT == dir)
                 {
-                    tank->stop[0 + j] = 1;
-                    printf("j = %d, i = %d\n", j, i);
+                    height -= PIXEL_SIZE;
+                }
+                if (DOWN == dir || UP == dir)
+                {
+                    width -= PIXEL_SIZE;
+                }
+                if (width > 0.0 && height > 0.0) 
+                {
+                    tank->stop[dir] = 1;
+                    printf("dir = %d, i = %d\n", dir, i);
                     break;
                 }
             }
         }
     }
-//    for (int i = 0; i < 3; i++)
-//    {
-//        if (list[i][2])
-//        {
-//            intersection(&width, &height, tank->pos, list[i][2]->pos);
-//            if (width > 0.0 && height - PIXEL_SIZE > 0.0)
-//            {
-//                tank->stop[1] = 1;
-//                break;
-//            }
-//        }
-//    }
-    for (int i = 0; i < 3; i++)
-    {
-        if (list[2][i])
-        {
-            intersection(&width, &height, tank->pos, list[2][i]->pos);
-            if (width - PIXEL_SIZE > 0.0 && height > 0.0)
-            {
-                tank->stop[2] = 1;
-                break;
-            }
-        }
-    }
-    for (int i = 0; i < 3; i++)
-    {
-        if (list[0][i])
-        {
-            intersection(&width, &height, tank->pos, list[0][i]->pos);
-            if (width - PIXEL_SIZE > 0.0 && height > 0.0)
-            {
-                tank->stop[3] = 1;
-                break;
-            }
-        }
-    }
-
-//     tank->stop[0] = (
-//             (list[0][0] && intersection(tank->pos, list[0][0]->pos) && ) || 
-//             (list[1][0] && intersection(tank->pos, list[1][0]->pos)) || 
-//             (list[2][0] && intersection(tank->pos, list[2][0]->pos))
-//             );
-//     tank->stop[1] = (
-//             (list[0][2] && intersection(tank->pos, list[0][2]->pos)) || 
-//             (list[1][2] && intersection(tank->pos, list[1][2]->pos)) || 
-//             (list[2][2] && intersection(tank->pos, list[2][2]->pos))
-//             );
-//     tank->stop[2] = (
-//             (list[2][0] && intersection(tank->pos, list[2][0]->pos)) || 
-//             (list[2][1] && intersection(tank->pos, list[2][1]->pos)) || 
-//             (list[2][2] && intersection(tank->pos, list[2][2]->pos))
-//             );
-//     tank->stop[3] = (
-//             (list[0][0] && intersection(tank->pos, list[0][0]->pos)) || 
-//             (list[0][1] && intersection(tank->pos, list[0][1]->pos)) || 
-//             (list[0][2] && intersection(tank->pos, list[0][2]->pos))
-//             );
 //   printf("pos x=%f, y = %f\n", tank->pos[0], tank->pos[1]);
 }
 
