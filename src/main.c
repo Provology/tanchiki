@@ -27,11 +27,13 @@ enum e_game_state
 // images
 static const char *PATH_BC = "/home/ruslan/Downloads/battle_city.jpg";
 // map
-static const char *PATH_MAP = "/home/ruslan/Desktop/PROJ/ping_pong/src/map.txt";
+static const char *PATH_MAP = "/home/ruslan/Desktop/PROJ/ping_pong/src/map2.txt";
 // shaders
 static const char *SHADER_VERTEX = "/home/ruslan/Desktop/PROJ/ping_pong/src/shaders/projection.vs"; 
 static const char *SHADER_FRAGMENT = "/home/ruslan/Desktop/PROJ/ping_pong/src/shaders/projection.fs";
 
+//debug vars
+int minimap = 0;
 // settings
 const float TILE_SIZE = SCR_WIDTH / MAP_SIZE;
 const float PIXEL_SIZE = TILE_SIZE / 16;
@@ -48,7 +50,9 @@ static enum e_game_state game_state = GAME_ACTIVE;
 void processInput(GLFWwindow *window);
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mode);
 void render_tank(float deltaTime, t_tile *tank, unsigned int shaderProgram_tex, t_vbuff *vbuff);
-
+void render_map(unsigned int shaderProgram_tex, t_vbuff *vbuff, t_tile map[MAP_SIZE][MAP_SIZE]);
+void ai_of_tanks(t_tile *tanks);
+void simple_ai_of_tanks(t_tile *tanks);
 
 int main()
 {
@@ -62,11 +66,8 @@ int main()
     float currentFrame = 0;
     float lastFrame = 0.0f;
     float deltaTime = 0.0f;
-//    float timeStep = 0;
-//    float animStep = 0;
-//    int tex = 0;
 
-    t_tile tanks[2] = {{0}};
+    t_tile tanks[Q_TANKS] = {{0}};
     t_tile map[MAP_SIZE][MAP_SIZE] = {0};
     float pos[3] = {TILE_SIZE * 9, TILE_SIZE * 7, 0.0};
 
@@ -94,7 +95,7 @@ int main()
 
 
     create_ortho_proj(0.0f, SCR_WIDTH, 0.0f, SCR_HEIGHT); 
-    for (int i = 0; i < 2; i++)
+    for (int i = 0; i < Q_TANKS; i++)
     {
         for (int j = 0; j < 10; j++)
         {
@@ -117,7 +118,11 @@ int main()
 
     printf("left = %d, right = %d, top = %d, bottom = %d\n", tanks[0].stop[0], tanks[0].stop[1], tanks[0].stop[2], tanks[0].stop[3]);
 //    printf("%d\n", textures[16]);
-
+    
+    tanks[1].pos[0] -= 2 * TILE_SIZE;
+    tanks[1].velocity[0] = -1;
+    tanks[2].pos[0] -= 3 * TILE_SIZE;
+    tanks[2].velocity[1] = -1;
     // render loop
     // -----------
     while (!glfwWindowShouldClose(window))
@@ -131,7 +136,7 @@ int main()
 
         // update game state
         //
-        for (int i = 0; i < 2; i++)
+        for (int i = 0; i < 1; i++) // temporary only player reset, maybe it lasts
         {
             tanks[i].velocity[0] = 0;
             tanks[i].velocity[1] = 0;
@@ -141,7 +146,8 @@ int main()
         // -----
         processInput(window);
         memcpy(tanks[0].velocity, player.velocity, sizeof(player.velocity));
-
+//        ai_of_tanks(tanks); // TODO collision debug
+        simple_ai_of_tanks(tanks);
        // TODO experimental color change
        // tanks[0].color[0] = sin(col);
        // tanks[0].color[1] = sin(col);
@@ -158,26 +164,13 @@ int main()
 
         // create transformations
 
-        for (int i = 0; i < MAP_SIZE; i++)
-        {
-            for (int j = 0; j < MAP_SIZE; j++)
-            {
-           	    DrawSprite(shaderProgram_tex, &vbuff, map[i][j].texture[0], map[i][j].pos, size, angle, color);
-//                printf("map[%d][%d] = %d\n", i, j, map[i][j].texture[0]);
-            }
-//            printf("%f\n", pos[0]);
-        }
-//        printf("-------------\n");
-
-//        locate_tank_on_map(tank_cell, &tanks[0]);
-//        is_there_way(tank_cell, &tanks[0], map);
-//        obstacle_list(tank_cell[0], tank_cell[1], list, map);
-//        is_there_way2(list, &tanks[0]);
-        is_there_way(&tanks[0], map);
+        render_map(shaderProgram_tex, &vbuff, map);
+        is_there_way(tanks, map);
 //        printf("x=%d, y=%d, ", tank_cell[0], tank_cell[1]);
 //        printf("left = %d, right = %d, top = %d, bottom = %d\n", tanks[0].stop[0], tanks[0].stop[1], tanks[0].stop[2], tanks[0].stop[3]);
         render_tank(deltaTime, &tanks[0], shaderProgram_tex, &vbuff);
         render_tank(deltaTime, &tanks[1], shaderProgram_tex, &vbuff);
+        render_tank(deltaTime, &tanks[2], shaderProgram_tex, &vbuff);
 //        printf("%f, %f\n", tanks[0].pos[0], tanks[0].pos[1]);
 //        printf("%d, %d\n", tanks[0].texture[0], textures[0]);
 
@@ -195,6 +188,76 @@ int main()
     // ------------------------------------------------------------------
     glfwTerminate();
     return 0;
+}
+
+void simple_ai_of_tanks(t_tile *tanks)
+{
+    static int counter = 0;
+
+    if (counter > 1000)
+    {
+//        tanks[1].velocity[0] = -tanks[1].velocity[0];
+        tanks[2].velocity[1] = -tanks[2].velocity[1];
+        counter = 0;
+    }
+    counter++;
+}
+
+void ai_of_tanks(t_tile *tanks)
+{
+    int dir = 0;
+    float rand = 0.0f;
+
+    for (int i = 1; i < Q_TANKS; i++)
+    {
+        rand = glfwGetTime();
+        if (tanks[i].pos[0] == tanks[i].pos_prev[0] && tanks[i].pos[1] == tanks[i].pos_prev[1])
+        {
+            tanks[i].counter++;
+        }
+        if (tanks[i].counter > 1000)
+        {
+            dir = ((signed char)rand + i) % 4; // TODO use real random numbers
+            if (dir == 0)
+            {
+                tanks[i].velocity[0] = 0;
+                tanks[i].velocity[1] = 1;
+            }
+            else if (dir == 1)
+            {
+                tanks[i].velocity[0] = 0;
+                tanks[i].velocity[1] = -1;
+            }
+            else if (dir == 2)
+            {
+                tanks[i].velocity[0] = 1;
+                tanks[i].velocity[1] = 0;
+            }
+            else if (dir == 3)
+            {
+                tanks[i].velocity[0] = -1;
+                tanks[i].velocity[1] = 0;
+            }
+            tanks[i].counter = 0;
+        }
+        tanks[i].pos_prev[0] = tanks[i].pos[0];
+        tanks[i].pos_prev[1] = tanks[i].pos[1];
+//        printf("i = %d, counter = %d, rand = %d\n", i, tanks[i].counter, (signed char)rand & 1);
+    }
+}
+
+void render_map(unsigned int shaderProgram_tex, t_vbuff *vbuff, t_tile map[MAP_SIZE][MAP_SIZE])
+{
+    for (int i = 0; i < MAP_SIZE; i++)
+    {
+        for (int j = 0; j < MAP_SIZE; j++)
+        {
+           	DrawSprite(shaderProgram_tex, vbuff, map[i][j].texture[0], map[i][j].pos, size, angle, color);
+//          printf("map[%d][%d] = %d\n", i, j, map[i][j].texture[0]);
+        }
+//      printf("%f\n", pos[0]);
+    }
+//  printf("-------------\n");
 }
 
 void render_tank(float deltaTime, t_tile *tank, unsigned int shaderProgram_tex, t_vbuff *vbuff)
@@ -310,8 +373,11 @@ void processInput(GLFWwindow *window)
         printf("game_state = %d\n", game_state);
     }
     pause_pressed = keys[GLFW_KEY_SPACE];
-
-//    if (keys[GLFW_KEY_Q] && !color_inc)
+    if (keys[GLFW_KEY_M])
+    {
+        minimap = !minimap;
+    }
+//    if (keys[GLFW_KEY_Q] && !color_inc) // TODO color change experiment
 //    {
 //        col++;
 //    }
