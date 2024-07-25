@@ -34,6 +34,14 @@ unsigned int read_map(t_tile map[MAP_SIZE][MAP_SIZE], const char *Path)
     // printf("len = %d\n", len);
     }
     close(fd);
+    for (int i = 0; i < MAP_SIZE; i++)
+    {
+        for (int j = 0; j < MAP_SIZE; j++)
+        {
+            map[i][j].pos[0] = TILE_SIZE * j;//width;
+            map[i][j].pos[1] = TILE_SIZE * i;// height * i;
+        }
+    }
     return (0);
 }
 

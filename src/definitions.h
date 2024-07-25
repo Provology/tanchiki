@@ -13,8 +13,8 @@
 
 typedef struct s_tile 
 {
-    float timeStep;
-    float animStep;
+//    float timeStep;
+//    float animStep;
     int tex;
     int tex_index;
     signed int velocity[2];

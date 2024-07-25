@@ -92,12 +92,12 @@ static void is_there_way2(t_tile *list[3][3], t_tile *tank)
                 }
 //                printf("w = %f", width);
 //                printf("h = %f\n", height);
-                printf("pos1 = %f, pos2 = %f\n", tank->pos[1], obst[dir][i]->pos[1]);
+//                printf("pos1 = %f, pos2 = %f\n", tank->pos[1], obst[dir][i]->pos[1]);
                 if (width > 0.0 && height > 0.0) 
                 {
                     tank->stop[dir] = 1;
 //                    printf("dir = %d, i = %d\n", dir, i);
-                    printf("h = %f\n", height);
+//                    printf("h = %f\n", height);
                     break;
                 }
             }

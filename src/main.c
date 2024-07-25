@@ -11,6 +11,7 @@
 #include"render.h"
 #include"read_map.h"
 #include"obstacle.h"
+#include"ai_module.h"
 
 typedef struct s_player
 {
@@ -49,10 +50,11 @@ static enum e_game_state game_state = GAME_ACTIVE;
 
 void processInput(GLFWwindow *window);
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mode);
-void render_tank(float deltaTime, t_tile *tank, unsigned int shaderProgram_tex, t_vbuff *vbuff);
+void render_tank(t_tile *tank, unsigned int shaderProgram_tex, t_vbuff *vbuff);
 void render_map(unsigned int shaderProgram_tex, t_vbuff *vbuff, t_tile map[MAP_SIZE][MAP_SIZE]);
-void ai_of_tanks(t_tile *tanks);
-void simple_ai_of_tanks(t_tile *tanks);
+void init_tanks(t_tile *tanks, unsigned int *textures);
+void move_tank(t_tile *tank);
+void update_game(float deltaTime, t_tile *tanks, t_tile map[MAP_SIZE][MAP_SIZE]);
 
 int main()
 {
@@ -63,13 +65,12 @@ int main()
     unsigned int textures[17];
     unsigned int shaderProgram_tex;//TODO create shader program object
 
-    float currentFrame = 0;
+    float currentFrame = 0.0f;
     float lastFrame = 0.0f;
     float deltaTime = 0.0f;
 
     t_tile tanks[Q_TANKS] = {{0}};
     t_tile map[MAP_SIZE][MAP_SIZE] = {0};
-    float pos[3] = {TILE_SIZE * 9, TILE_SIZE * 7, 0.0};
 
     glfw_init();
     error = glfw_window(&window, SCR_WIDTH, SCR_HEIGHT);
@@ -88,47 +89,25 @@ int main()
 
     // load and create a texture 
     // -------------------------
-    texture_loader(17, textures, PATH_BC);
+    texture_loader(sizeof(textures) / sizeof(unsigned int), textures, PATH_BC);
     // tell opengl for each sampler to which texture unit it belongs to (only has to be done once)
     glUseProgram(shaderProgram_tex);
 //    printf("%d, %d, %d\n", textures[0], textures[1], textures[2]);
 
-
     create_ortho_proj(0.0f, SCR_WIDTH, 0.0f, SCR_HEIGHT); 
-    for (int i = 0; i < Q_TANKS; i++)
-    {
-        for (int j = 0; j < 10; j++)
-        {
-            tanks[i].texture[j] = textures[j];
-        }
-        memcpy(tanks[i].pos, pos, sizeof(pos)); 
-        memcpy(tanks[i].color, color, sizeof(color));
-    }
-//    printf("tex = %u, pos = %u\n", sizeof(textures), sizeof(pos));
+    init_tanks(tanks, textures);
     read_map(map, PATH_MAP);
-    
-    for (int i = 0; i < MAP_SIZE; i++)
-    {
-        for (int j = 0; j < MAP_SIZE; j++)
-        {
-            map[i][j].pos[0] = TILE_SIZE * j;//width;
-            map[i][j].pos[1] = TILE_SIZE * i;// height * i;
-        }
-    }
 
-    printf("left = %d, right = %d, top = %d, bottom = %d\n", tanks[0].stop[0], tanks[0].stop[1], tanks[0].stop[2], tanks[0].stop[3]);
+//    printf("left = %d, right = %d, top = %d, bottom = %d\n", tanks[0].stop[0], tanks[0].stop[1], tanks[0].stop[2], tanks[0].stop[3]);
 //    printf("%d\n", textures[16]);
     
-    tanks[1].pos[0] -= 2 * TILE_SIZE;
-    tanks[1].velocity[0] = -1;
-    tanks[2].pos[0] -= 3 * TILE_SIZE;
-    tanks[2].velocity[1] = -1;
     // render loop
     // -----------
     while (!glfwWindowShouldClose(window))
     {
         // calculate deltatime
         //
+        // TODO put this calculations in state updater
         currentFrame = glfwGetTime();
         deltaTime = currentFrame - lastFrame;
         lastFrame = currentFrame;
@@ -136,18 +115,12 @@ int main()
 
         // update game state
         //
-        for (int i = 0; i < 1; i++) // temporary only player reset, maybe it lasts
-        {
-            tanks[i].velocity[0] = 0;
-            tanks[i].velocity[1] = 0;
-        }
+        update_game(deltaTime, tanks, map);
 
         // input
         // -----
         processInput(window);
-        memcpy(tanks[0].velocity, player.velocity, sizeof(player.velocity));
-//        ai_of_tanks(tanks); // TODO collision debug
-        simple_ai_of_tanks(tanks);
+
        // TODO experimental color change
        // tanks[0].color[0] = sin(col);
        // tanks[0].color[1] = sin(col);
@@ -165,12 +138,12 @@ int main()
         // create transformations
 
         render_map(shaderProgram_tex, &vbuff, map);
-        is_there_way(tanks, map);
 //        printf("x=%d, y=%d, ", tank_cell[0], tank_cell[1]);
 //        printf("left = %d, right = %d, top = %d, bottom = %d\n", tanks[0].stop[0], tanks[0].stop[1], tanks[0].stop[2], tanks[0].stop[3]);
-        render_tank(deltaTime, &tanks[0], shaderProgram_tex, &vbuff);
-        render_tank(deltaTime, &tanks[1], shaderProgram_tex, &vbuff);
-        render_tank(deltaTime, &tanks[2], shaderProgram_tex, &vbuff);
+        for (int i = 0; i < Q_TANKS; i++)
+        {
+            render_tank(&tanks[i], shaderProgram_tex, &vbuff);
+        }
 //        printf("%f, %f\n", tanks[0].pos[0], tanks[0].pos[1]);
 //        printf("%d, %d\n", tanks[0].texture[0], textures[0]);
 
@@ -190,59 +163,59 @@ int main()
     return 0;
 }
 
-void simple_ai_of_tanks(t_tile *tanks)
+void init_tanks(t_tile *tanks, unsigned int *textures)
 {
-    static int counter = 0;
+    float pos[3] = {TILE_SIZE * 9, TILE_SIZE * 7, 0.0};
 
-    if (counter > 1000)
+    for (int i = 0; i < Q_TANKS; i++)
     {
-//        tanks[1].velocity[0] = -tanks[1].velocity[0];
-        tanks[2].velocity[1] = -tanks[2].velocity[1];
-        counter = 0;
+        for (int j = 0; j < 10; j++) // TODO 10 sprites of tank
+        {
+            tanks[i].texture[j] = textures[j];
+        }
+        memcpy(tanks[i].pos, pos, sizeof(pos)); 
+        memcpy(tanks[i].color, color, sizeof(color));
     }
-    counter++;
+
+    tanks[1].pos[0] -= 2 * TILE_SIZE;
+    tanks[1].velocity[0] = -1;
+    tanks[2].pos[0] -= 3 * TILE_SIZE;
+    tanks[2].velocity[1] = -1;
 }
 
-void ai_of_tanks(t_tile *tanks)
+void update_game(float deltaTime, t_tile *tanks, t_tile map[MAP_SIZE][MAP_SIZE])
 {
-    int dir = 0;
-    float rand = 0.0f;
-
-    for (int i = 1; i < Q_TANKS; i++)
+    static float animStep = 0;
+    static float moveTime = 0;
+    
+    animStep += deltaTime;
+    moveTime += deltaTime;
+    if (animStep > 0.1)
     {
-        rand = glfwGetTime();
-        if (tanks[i].pos[0] == tanks[i].pos_prev[0] && tanks[i].pos[1] == tanks[i].pos_prev[1])
+        for (int i = 0; i < Q_TANKS; i++)
         {
-            tanks[i].counter++;
+            tanks[i].tex = ((tanks[i].tex + 1) % 2) + tanks[i].tex_index; // 2 - number of frames in animation loop
         }
-        if (tanks[i].counter > 1000)
+        animStep = 0;
+    }
+
+    if (moveTime > 0.05)
+    {
+//        printf("vx=%d, vy=%d\n", tank->velocity[0], tank->velocity[1]);
+        for (int i = 0; i < 1; i++) 
         {
-            dir = ((signed char)rand + i) % 4; // TODO use real random numbers
-            if (dir == 0)
-            {
-                tanks[i].velocity[0] = 0;
-                tanks[i].velocity[1] = 1;
-            }
-            else if (dir == 1)
-            {
-                tanks[i].velocity[0] = 0;
-                tanks[i].velocity[1] = -1;
-            }
-            else if (dir == 2)
-            {
-                tanks[i].velocity[0] = 1;
-                tanks[i].velocity[1] = 0;
-            }
-            else if (dir == 3)
-            {
-                tanks[i].velocity[0] = -1;
-                tanks[i].velocity[1] = 0;
-            }
-            tanks[i].counter = 0;
+            tanks[i].velocity[0] = 0;
+            tanks[i].velocity[1] = 0;
         }
-        tanks[i].pos_prev[0] = tanks[i].pos[0];
-        tanks[i].pos_prev[1] = tanks[i].pos[1];
-//        printf("i = %d, counter = %d, rand = %d\n", i, tanks[i].counter, (signed char)rand & 1);
+        memcpy(tanks[0].velocity, player.velocity, sizeof(player.velocity));
+//        ai_of_tanks(tanks); // TODO collision debug
+        simple_ai_of_tanks(tanks);
+        is_there_way(tanks, map);
+        for (int i = 0; i < Q_TANKS; i++)
+        {
+            move_tank(&tanks[i]);
+        }
+        moveTime = 0;
     }
 }
 
@@ -260,75 +233,62 @@ void render_map(unsigned int shaderProgram_tex, t_vbuff *vbuff, t_tile map[MAP_S
 //  printf("-------------\n");
 }
 
-void render_tank(float deltaTime, t_tile *tank, unsigned int shaderProgram_tex, t_vbuff *vbuff)
+void move_tank(t_tile *tank)// TODO separate tex_index and pos in two funcs
 {
-    tank->animStep += deltaTime;
-    tank->timeStep += deltaTime;
-//    printf("%f\n", tank->timeStep);
-    if (tank->animStep > 0.1)
+//   printf("vx=%d, vy=%d\n", tank->velocity[0], tank->velocity[1]);
+    // direction
+    if (tank->velocity[0] < 0)
     {
-//        printf("animbranch\n");
-        tank->tex = ((tank->tex + 1) % 2) + tank->tex_index; // 2 - number of frames in animation loop
-        tank->animStep = 0;
+        tank->tex_index = 2;
+//        printf("x=%f, y=%f\n", tank->pos[0], tank->pos[1]);
     }
-    if (tank->timeStep > 0.05)// TODO separate tex_index and pos in two funcs
+    else if (tank->velocity[0] > 0)
     {
-//        printf("vx=%d, vy=%d\n", tank->velocity[0], tank->velocity[1]);
-        // direction
-        if (tank->velocity[0] < 0)
-        {
-            tank->tex_index = 2;
-//            printf("x=%f, y=%f\n", tank->pos[0], tank->pos[1]);
-        }
-        else if (tank->velocity[0] > 0)
-        {
-            tank->tex_index = 6;
-        }
-        else if (tank->velocity[1] < 0)
-        {
-            tank->tex_index = 0;
-        }
-        else if (tank->velocity[1] > 0)
-        {
-            tank->tex_index = 4;
-        }
-        // movement
-        if (tank->velocity[0] < 0 && !tank->stop[0])
-        {
-            tank->pos[0] -= PIXEL_SIZE;
-//            printf("x=%f, y=%f\n", tank->pos[0], tank->pos[1]);
-        }
-        else if (tank->velocity[0] > 0 && !tank->stop[1])
-        {
-            tank->pos[0] += PIXEL_SIZE;
-        }
-        else if (tank->velocity[1] < 0 && !tank->stop[2])
-        {
-            tank->pos[1] -= PIXEL_SIZE;
-        }
-        else if (tank->velocity[1] > 0 && !tank->stop[3])
-        {
-            tank->pos[1] += PIXEL_SIZE;
-        }
-
-
-        for (int i = 0; i < 2; i++)
-        {
-             if (tank->pos[i] + PIXEL_SIZE < 0.0)
-             {
-                 tank->pos[i] = 0.0 - PIXEL_SIZE;
-             }
-             else if (tank->pos[i] - PIXEL_SIZE > TILE_SIZE * (MAP_SIZE - 1))
-             {
-                 tank->pos[i] = TILE_SIZE * (MAP_SIZE - 1) + PIXEL_SIZE;
-             }
-        }
-        tank->timeStep = 0;
+        tank->tex_index = 6;
     }
-//    printf("%f, %f, %f\n", tank->pos[0], tank->pos[1], tank->pos[2]);
-//    printf("shader2=%d\n", shaderProgram_tex);
+    else if (tank->velocity[1] < 0)
+    {
+        tank->tex_index = 0;
+    }
+    else if (tank->velocity[1] > 0)
+    {
+        tank->tex_index = 4;
+    }
+    // movement
+    if (tank->velocity[0] < 0 && !tank->stop[0])
+    {
+        tank->pos[0] -= PIXEL_SIZE;
+//        printf("x=%f, y=%f\n", tank->pos[0], tank->pos[1]);
+    }
+    else if (tank->velocity[0] > 0 && !tank->stop[1])
+    {
+        tank->pos[0] += PIXEL_SIZE;
+    }
+    else if (tank->velocity[1] < 0 && !tank->stop[2])
+    {
+        tank->pos[1] -= PIXEL_SIZE;
+    }
+    else if (tank->velocity[1] > 0 && !tank->stop[3])
+    {
+        tank->pos[1] += PIXEL_SIZE;
+    }
+
+    for (int i = 0; i < 2; i++)
+    {
+         if (tank->pos[i] + PIXEL_SIZE < 0.0)
+         {
+             tank->pos[i] = 0.0 - PIXEL_SIZE;
+         }
+         else if (tank->pos[i] - PIXEL_SIZE > TILE_SIZE * (MAP_SIZE - 1))
+         {
+             tank->pos[i] = TILE_SIZE * (MAP_SIZE - 1) + PIXEL_SIZE;
+         }
+    }
+}
+
+void render_tank(t_tile *tank, unsigned int shaderProgram_tex, t_vbuff *vbuff)
+{
     DrawSprite(shaderProgram_tex, vbuff, tank->texture[tank->tex], tank->pos, size, angle, tank->color);
-
 }
 
 // process all input: query GLFW whether relevant keys are pressed/released this frame and react accordingly
