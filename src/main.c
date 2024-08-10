@@ -24,9 +24,26 @@ enum e_game_state
     GAME_ACTIVE = 1
 };
 
+enum e_gun
+{
+    RELOAD = 0,
+    FIRE,
+    PROPELL,
+    COLLIDE,
+    EXPLODE
+};
+
+enum e_tex_index
+{
+    TEX_L = 2,
+    TEX_R = 6,
+    TEX_D = 0,
+    TEX_U = 4
+};
+
 
 // images
-static const char *PATH_BC = "/home/ruslan/Downloads/battle_city.jpg";
+static const char *PATH_BC = "/home/ruslan/Downloads/battle_city1.png";
 // map
 static const char *PATH_MAP = "/home/ruslan/Desktop/PROJ/ping_pong/src/map2.txt";
 // shaders
@@ -63,7 +80,7 @@ int main()
     GLFWwindow *window = NULL;
     int error = 0;
     t_vbuff vbuff = {0};
-    unsigned int textures[17];
+    unsigned int textures[TEX_NUM];
     unsigned int shaderProgram_tex;//TODO create shader program object
 
     float currentFrame = 0.0f;
@@ -170,12 +187,14 @@ void init_tanks(t_tile *tanks, unsigned int *textures)
 
     for (int i = 0; i < Q_TANKS; i++)
     {
-        for (int j = 0; j < 10; j++) // TODO 10 sprites of tank
+        for (int j = 0; j < TEX_NUM; j++) // TODO 10 sprites of tank
         {
             tanks[i].texture[j] = textures[j];
         }
         memcpy(tanks[i].pos, pos, sizeof(pos)); 
         memcpy(tanks[i].color, color, sizeof(color));
+        tanks[i].gun_dir = Q_DIRS;
+//        tanks[i].bullet_tex = 0;
     }
 
     // TODO random initial positions
@@ -222,20 +241,80 @@ void update_game(float deltaTime, t_tile *tanks, t_tile map[MAP_SIZE][MAP_SIZE])
 
 void guns(t_tile *tank)
 {
-    static int cannon_reload = 0;
-
-//        printf("tank-fire = %d\n", tanks[0].fire);
-    if (1 == tank->fire)
+    if (FIRE == tank->fire)
     {
         printf("FIRE!!\n");
-        cannon_reload++;
-        if (cannon_reload > 14)
+        tank->fire = PROPELL;
+        // direction
+        if (TEX_L == tank->tex_index)
         {
-            tank->fire = 0;
-            cannon_reload = 0;
-            printf("RELOAD\n");
+            tank->gun_dir = LEFT;
+            tank->bullet_tex = 25 + 14;
+            printf("L\n");
+        }
+        else if (TEX_R == tank->tex_index)
+        {
+            tank->gun_dir = RIGHT;
+            tank->bullet_tex = 25 + 16;
+            printf("R\n");
+        }
+        else if (TEX_D == tank->tex_index)
+        {
+            tank->gun_dir = DOWN;
+            tank->bullet_tex = 25 + 13;
+            printf("D\n");
+        }
+        else if (TEX_U == tank->tex_index)
+        {
+            tank->gun_dir = UP;
+            tank->bullet_tex = 25 + 15;
+            printf("U\n");
+        }
+        tank->bullet_pos[0] = tank->pos[0];
+        tank->bullet_pos[1] = tank->pos[1];
+    }
+    // movement
+    if (PROPELL == tank->fire)
+    {
+        if (LEFT == tank->gun_dir)
+        {
+            tank->bullet_pos[0] -= PIXEL_SIZE;
+            printf("<");
+        }
+        if (RIGHT == tank->gun_dir)
+        {
+            tank->bullet_pos[0] += PIXEL_SIZE;
+            printf(">");
+        }
+        if (DOWN == tank->gun_dir)
+        {
+            tank->bullet_pos[1] -= PIXEL_SIZE;
+            printf("v\n");
+        }
+        if (UP == tank->gun_dir)
+        {
+            tank->bullet_pos[1] += PIXEL_SIZE;
+            printf("^\n");
         }
     }
+
+//    for (int i = 0; i < 2; i++)
+//    {
+//         if (tank->pos[i] + PIXEL_SIZE < 0.0)
+//         {
+//             tank->pos[i] = 0.0 - PIXEL_SIZE;
+//         }
+//         else if (tank->pos[i] - PIXEL_SIZE > TILE_SIZE * (MAP_SIZE - 1))
+//         {
+//             tank->pos[i] = TILE_SIZE * (MAP_SIZE - 1) + PIXEL_SIZE;
+//         }
+//    }
+
+    // collision
+    
+    // animation of explosion (no collision then)
+
+    // reset
 }
 
 void render_map(unsigned int shaderProgram_tex, t_vbuff *vbuff, t_tile map[MAP_SIZE][MAP_SIZE])
@@ -245,7 +324,7 @@ void render_map(unsigned int shaderProgram_tex, t_vbuff *vbuff, t_tile map[MAP_S
         for (int j = 0; j < MAP_SIZE; j++)
         {
            	DrawSprite(shaderProgram_tex, vbuff, map[i][j].texture[0], map[i][j].pos, size, angle, color);
-//          printf("map[%d][%d] = %d\n", i, j, map[i][j].texture[0]);
+//            printf("map[%d][%d] = %d\n", i, j, map[i][j].texture[0]);
         }
 //      printf("%f\n", pos[0]);
     }
@@ -258,20 +337,20 @@ void move_tank(t_tile *tank)// TODO separate tex_index and pos in two funcs
     // direction
     if (tank->velocity[0] < 0)
     {
-        tank->tex_index = 2;
+        tank->tex_index = TEX_L;
 //        printf("x=%f, y=%f\n", tank->pos[0], tank->pos[1]);
     }
     else if (tank->velocity[0] > 0)
     {
-        tank->tex_index = 6;
+        tank->tex_index = TEX_R;
     }
     else if (tank->velocity[1] < 0)
     {
-        tank->tex_index = 0;
+        tank->tex_index = TEX_D;
     }
     else if (tank->velocity[1] > 0)
     {
-        tank->tex_index = 4;
+        tank->tex_index = TEX_U;
     }
     // movement
     if (tank->velocity[0] < 0 && !tank->stop[0])
@@ -308,6 +387,10 @@ void move_tank(t_tile *tank)// TODO separate tex_index and pos in two funcs
 void render_tank(t_tile *tank, unsigned int shaderProgram_tex, t_vbuff *vbuff)
 {
     DrawSprite(shaderProgram_tex, vbuff, tank->texture[tank->tex], tank->pos, size, angle, tank->color);
+    if (PROPELL == tank->fire)
+    {
+        DrawSprite(shaderProgram_tex, vbuff, tank->texture[tank->bullet_tex], tank->bullet_pos, size, angle, color);
+    }
 }
 
 // process all input: query GLFW whether relevant keys are pressed/released this frame and react accordingly

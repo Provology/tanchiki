@@ -2,14 +2,6 @@
 
 // TODO fix bug with transparent tanks. Maybe it position of collision relativly to tile map. Need to set series of tests with two colliding tanks on varios distances from each other.
 
-enum e_dir
-{
-    LEFT = 0,
-    RIGHT,
-    DOWN,
-    UP,
-    Q_DIRS
-};
 
 static void locate_tank_on_map(int *x, int *y, const t_tile *tank)
 {

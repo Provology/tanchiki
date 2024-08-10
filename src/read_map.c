@@ -20,8 +20,8 @@ unsigned int read_map(t_tile map[MAP_SIZE][MAP_SIZE], const char *Path)
                 if (buf == 'B')
                 {
 //                    map[i][j].texture[0] = j;
-                    map[i][j].texture[0] = 17;
-//                    printf("map[%d][%d]\n", i, j);
+                    map[i][j].texture[0] = 9;
+//                    printf("map[%d][%d] = %d\n", i, j, map[i][j].texture[0]);
                 }
                 else
                 {

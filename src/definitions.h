@@ -10,6 +10,7 @@
 #define SCR_WIDTH 600.0f
 #define SCR_HEIGHT 600.0f // unequal width and height lead to double calculations for pixel and tile sizes and changing params in case of tank 90dg turn.
 #define Q_TANKS 3
+#define TEX_NUM 45
 
 typedef struct s_tile 
 {
@@ -17,13 +18,16 @@ typedef struct s_tile
 //    float animStep;
     int tex;
     int tex_index;
+    int bullet_tex;
     signed int velocity[2];
     int fire;
+    int gun_dir;
+    float bullet_pos[3];
     float pos[3];
 //    float size[3] = {80.0f, 60.0f, 1.0};
     float angle;
     float color[3];
-    unsigned int texture[10]; //TODO animations of explosion, idle, all directions
+    unsigned int texture[TEX_NUM]; //TODO animations of explosion, idle, all directions
     int stop[4];
     float pos_prev[2];
     int counter;
