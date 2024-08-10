@@ -13,10 +13,10 @@
 #include"obstacle.h"
 #include"ai_module.h"
 
-typedef struct s_player
-{
-    signed int velocity[2];
-} t_player;
+//typedef struct s_player
+//{
+//    signed int velocity[2];
+//} t_player;
 
 enum e_game_state
 {
@@ -44,17 +44,18 @@ static const float color[3] = {1.0, 1.0, 1.0};
 
 // settings
 static int keys[1024] = {0};
-static t_player player = {0};
+// static t_player player = {0};
 static enum e_game_state game_state = GAME_ACTIVE;
 
 
-void processInput(GLFWwindow *window);
+void processInput(GLFWwindow *window, int velocity[2], int *fire);
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mode);
 void render_tank(t_tile *tank, unsigned int shaderProgram_tex, t_vbuff *vbuff);
 void render_map(unsigned int shaderProgram_tex, t_vbuff *vbuff, t_tile map[MAP_SIZE][MAP_SIZE]);
 void init_tanks(t_tile *tanks, unsigned int *textures);
 void move_tank(t_tile *tank);
 void update_game(float deltaTime, t_tile *tanks, t_tile map[MAP_SIZE][MAP_SIZE]);
+void guns(t_tile *tank);
 
 int main()
 {
@@ -119,7 +120,7 @@ int main()
 
         // input
         // -----
-        processInput(window);
+        processInput(window, tanks[0].velocity, &tanks[0].fire);
 
        // TODO experimental color change
        // tanks[0].color[0] = sin(col);
@@ -177,6 +178,7 @@ void init_tanks(t_tile *tanks, unsigned int *textures)
         memcpy(tanks[i].color, color, sizeof(color));
     }
 
+    // TODO random initial positions
     tanks[1].pos[0] -= 2 * TILE_SIZE;
     tanks[1].velocity[0] = -1;
     tanks[2].pos[0] -= 3 * TILE_SIZE;
@@ -201,13 +203,12 @@ void update_game(float deltaTime, t_tile *tanks, t_tile map[MAP_SIZE][MAP_SIZE])
 
     if (moveTime > 0.05)
     {
-//        printf("vx=%d, vy=%d\n", tank->velocity[0], tank->velocity[1]);
-        for (int i = 0; i < 1; i++) 
-        {
-            tanks[i].velocity[0] = 0;
-            tanks[i].velocity[1] = 0;
-        }
-        memcpy(tanks[0].velocity, player.velocity, sizeof(player.velocity));
+        guns(&tanks[0]);
+//        for (int i = 0; i < 1; i++) 
+//        {
+//            tanks[i].velocity[0] = 0;
+//            tanks[i].velocity[1] = 0;
+//        }
 //        ai_of_tanks(tanks); // TODO collision debug
         simple_ai_of_tanks(tanks);
         is_there_way(tanks, map);
@@ -216,6 +217,24 @@ void update_game(float deltaTime, t_tile *tanks, t_tile map[MAP_SIZE][MAP_SIZE])
             move_tank(&tanks[i]);
         }
         moveTime = 0;
+    }
+}
+
+void guns(t_tile *tank)
+{
+    static int cannon_reload = 0;
+
+//        printf("tank-fire = %d\n", tanks[0].fire);
+    if (1 == tank->fire)
+    {
+        printf("FIRE!!\n");
+        cannon_reload++;
+        if (cannon_reload > 14)
+        {
+            tank->fire = 0;
+            cannon_reload = 0;
+            printf("RELOAD\n");
+        }
     }
 }
 
@@ -293,7 +312,7 @@ void render_tank(t_tile *tank, unsigned int shaderProgram_tex, t_vbuff *vbuff)
 
 // process all input: query GLFW whether relevant keys are pressed/released this frame and react accordingly
 // ---------------------------------------------------------------------------------------------------------
-void processInput(GLFWwindow *window)
+void processInput(GLFWwindow *window, int velocity[2], int *fire)
 {
     static int pause_pressed = 0;
 //    static int color_inc = 0;
@@ -303,36 +322,42 @@ void processInput(GLFWwindow *window)
         glfwSetWindowShouldClose(window, 1);
     if (game_state == GAME_ACTIVE)
     {
-        player.velocity[0] = 0;
-        player.velocity[1] = 0;
+        velocity[0] = 0;
+        velocity[1] = 0;
         if (keys[GLFW_KEY_A])
         {
-            player.velocity[0] = -1;
+            velocity[0] = -1;
 //            printf("left=%d, right=%d, %d\n", keys[GLFW_KEY_A], keys[GLFW_KEY_D], i);
 //            i++;
         }
         else if (keys[GLFW_KEY_D])
         {
-            player.velocity[0] = 1;
+            velocity[0] = 1;
 //            printf("right\n");
         }
         else if (keys[GLFW_KEY_W])
         {
-            player.velocity[1] = 1;
+            velocity[1] = 1;
 //            printf("up\n");
         }
         else if (keys[GLFW_KEY_S])
         {
-            player.velocity[1] = -1;
+            velocity[1] = -1;
 //            printf("down\n");
         }
+
+        // fire cannon
+        if (keys[GLFW_KEY_SPACE] && !*fire)
+        {
+            *fire = 1;
+        }
     }
-    if (keys[GLFW_KEY_SPACE] && !pause_pressed)
+    if (keys[GLFW_KEY_Z] && !pause_pressed)
     {
         game_state = !game_state;
         printf("game_state = %d\n", game_state);
     }
-    pause_pressed = keys[GLFW_KEY_SPACE];
+    pause_pressed = keys[GLFW_KEY_Z];
     if (keys[GLFW_KEY_M])
     {
         minimap = !minimap;

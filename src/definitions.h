@@ -18,6 +18,7 @@ typedef struct s_tile
     int tex;
     int tex_index;
     signed int velocity[2];
+    int fire;
     float pos[3];
 //    float size[3] = {80.0f, 60.0f, 1.0};
     float angle;
