@@ -13,6 +13,7 @@ enum e_dir
 };
 
 void is_there_way(t_tile *tanks, const t_tile map[MAP_SIZE][MAP_SIZE]);
+void bullet_collide(t_tile *tanks, const t_tile map[MAP_SIZE][MAP_SIZE]);
 // void tank_collision(t_tile *tanks);
 
 #endif // OBSTACLE_H

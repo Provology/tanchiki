@@ -10,6 +10,13 @@ static void locate_tank_on_map(int *x, int *y, const t_tile *tank)
 //    printf("tank[%d][%d], meanwhile PIXEL_SIZE=%f\n", tank_cell[0], tank_cell[1], PIXEL_SIZE);  
 }
 
+static void locate_bullet_on_map(int *x, int *y, const t_tile *tank)
+{
+    *x = (tank->bullet_pos[0] + (TILE_SIZE / 2)) / TILE_SIZE;
+    *y = (tank->bullet_pos[1] + (TILE_SIZE / 2)) / TILE_SIZE;
+//    printf("tank[%d][%d], meanwhile PIXEL_SIZE=%f\n", tank_cell[0], tank_cell[1], PIXEL_SIZE);  
+}
+
 static void obstacle_list(int x, int y, t_tile *list[3][3], const t_tile map[MAP_SIZE][MAP_SIZE])
 {
     for (int i = 0; i < 3; i++)
@@ -174,6 +181,53 @@ void is_there_way(t_tile *tanks, const t_tile map[MAP_SIZE][MAP_SIZE])
         }
         // ready list of obstacles for one tank
 //        is_there_way2(list, &tanks[i]);
+    }
+}
+
+static void target_list(int x, int y, t_tile *list[3][3], const t_tile map[MAP_SIZE][MAP_SIZE])
+{
+    for (int i = 0; i < 3; i++)
+    {
+        for (int j = 0; j < 3; j++)
+        {
+            list[i][j] = NULL;
+        }
+    }
+    for (int i = 0; i < 3; i++)
+    {
+        if ((MAP_SIZE - 1 == y && 0 == i) || (0 == y && 2 == i))
+        {
+            continue;
+        }
+        for (int j = 0; j < 3; j++)
+        {
+            if ((MAP_SIZE - 1 == x && 2 == j) || (0 == x && 0 == j))
+            {
+//                printf("x,y,list=%d,%d,%d\n", j, i, list[i][j]);
+                continue;
+            }
+            if (map[y + 1 - i][x - 1 + j].texture[0] != 0)
+            {
+                list[i][j] = &map[y + 1 - i][x - 1 + j];
+            }
+//            printf("list[%d][%d] = %f\n", i, j, list[i][j]->pos[0]);
+        }
+    }
+}
+
+void bullet_collide(t_tile *tanks, const t_tile map[MAP_SIZE][MAP_SIZE])
+{
+    int tank_cell[Q_TANKS][2] = {0};
+    t_tile *list[3][3] = {0};
+
+    for (int i = 0; i < Q_TANKS; i++)
+    {
+        locate_bullet_on_map(&tank_cell[i][0], &tank_cell[i][1], &tanks[i]);
+    }
+    for (int i = 0; i < Q_TANKS; i++)
+    {
+        target_list(tank_cell[i][0], tank_cell[i][1], list, map);
+        // TODO all
     }
 }
 

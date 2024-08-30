@@ -33,6 +33,13 @@ enum e_gun
     EXPLODE
 };
 
+enum e_bullet_speed
+{
+    BULLET_SPEED = 2,
+    BULLET_SPEEDX2 = 4
+};
+
+
 enum e_tex_index
 {
     TEX_L = 2,
@@ -72,7 +79,7 @@ void render_map(unsigned int shaderProgram_tex, t_vbuff *vbuff, t_tile map[MAP_S
 void init_tanks(t_tile *tanks, unsigned int *textures);
 void move_tank(t_tile *tank);
 void update_game(float deltaTime, t_tile *tanks, t_tile map[MAP_SIZE][MAP_SIZE]);
-void guns(t_tile *tank);
+void guns(t_tile *tank, const t_tile map[MAP_SIZE][MAP_SIZE]);
 
 int main()
 {
@@ -194,6 +201,7 @@ void init_tanks(t_tile *tanks, unsigned int *textures)
         memcpy(tanks[i].pos, pos, sizeof(pos)); 
         memcpy(tanks[i].color, color, sizeof(color));
         tanks[i].gun_dir = Q_DIRS;
+        tanks[i].bullet_speed = BULLET_SPEED;
 //        tanks[i].bullet_tex = 0;
     }
 
@@ -222,7 +230,6 @@ void update_game(float deltaTime, t_tile *tanks, t_tile map[MAP_SIZE][MAP_SIZE])
 
     if (moveTime > 0.05)
     {
-        guns(&tanks[0]);
 //        for (int i = 0; i < 1; i++) 
 //        {
 //            tanks[i].velocity[0] = 0;
@@ -231,6 +238,7 @@ void update_game(float deltaTime, t_tile *tanks, t_tile map[MAP_SIZE][MAP_SIZE])
 //        ai_of_tanks(tanks); // TODO collision debug
         simple_ai_of_tanks(tanks);
         is_there_way(tanks, map);
+        guns(tanks, map);
         for (int i = 0; i < Q_TANKS; i++)
         {
             move_tank(&tanks[i]);
@@ -239,82 +247,110 @@ void update_game(float deltaTime, t_tile *tanks, t_tile map[MAP_SIZE][MAP_SIZE])
     }
 }
 
-void guns(t_tile *tank)
+void guns(t_tile *tanks, const t_tile map[MAP_SIZE][MAP_SIZE])
 {
-    if (FIRE == tank->fire)
+    float speed = 0;
+
+    for (int i = 0; i < Q_TANKS; i++)
     {
-        printf("FIRE!!\n");
-        tank->fire = PROPELL;
-        // direction
-        if (TEX_L == tank->tex_index)
+
+        speed = tanks[i].bullet_speed * PIXEL_SIZE;
+
+        // shot
+        if (FIRE == tanks[i].fire)
         {
-            tank->gun_dir = LEFT;
-            tank->bullet_tex = 25 + 14;
-            printf("L\n");
+            printf("FIRE!!\n");
+            tanks[i].fire = PROPELL;
+            // direction
+            if (TEX_L == tanks[i].tex_index)
+            {
+                tanks[i].gun_dir = LEFT;
+                tanks[i].bullet_tex = 25 + 14; // TODO put in order
+                printf("L\n");
+            }
+            else if (TEX_R == tanks[i].tex_index)
+            {
+                tanks[i].gun_dir = RIGHT;
+                tanks[i].bullet_tex = 25 + 16;
+                printf("R\n");
+            }
+            else if (TEX_D == tanks[i].tex_index)
+            {
+                tanks[i].gun_dir = DOWN;
+                tanks[i].bullet_tex = 25 + 13;
+                printf("D\n");
+            }
+            else if (TEX_U == tanks[i].tex_index)
+            {
+                tanks[i].gun_dir = UP;
+                tanks[i].bullet_tex = 25 + 15;
+                printf("U\n");
+            }
+            tanks[i].bullet_pos[0] = tanks[i].pos[0];
+            tanks[i].bullet_pos[1] = tanks[i].pos[1];
         }
-        else if (TEX_R == tank->tex_index)
+
+        // movement
+        if (PROPELL == tanks[i].fire)
         {
-            tank->gun_dir = RIGHT;
-            tank->bullet_tex = 25 + 16;
-            printf("R\n");
+            if (LEFT == tanks[i].gun_dir)
+            {
+                tanks[i].bullet_pos[0] -= speed;
+                printf("<");
+            }
+            if (RIGHT == tanks[i].gun_dir)
+            {
+                tanks[i].bullet_pos[0] += speed;
+                printf(">");
+            }
+            if (DOWN == tanks[i].gun_dir)
+            {
+                tanks[i].bullet_pos[1] -= speed;
+                printf("v\n");
+            }
+            if (UP == tanks[i].gun_dir)
+            {
+                tanks[i].bullet_pos[1] += speed;
+                printf("^\n");
+            }
         }
-        else if (TEX_D == tank->tex_index)
+
+        // collision
+        if (PROPELL == tanks[i].fire)
         {
-            tank->gun_dir = DOWN;
-            tank->bullet_tex = 25 + 13;
-            printf("D\n");
+            for (int i = 0; i < 2; i++)
+            {
+                 if ((tanks[i].bullet_pos[i] + PIXEL_SIZE < 0.0) || 
+                     (tanks[i].bullet_pos[i] - PIXEL_SIZE > TILE_SIZE * (MAP_SIZE - 1)))
+                 {
+                     tanks[i].fire = EXPLODE;
+                 }
+            }
+            bullet_collide(tanks, map);
         }
-        else if (TEX_U == tank->tex_index)
+        
+        // animation of explosion (no collision then)
+        if (EXPLODE == tanks[i].fire)
         {
-            tank->gun_dir = UP;
-            tank->bullet_tex = 25 + 15;
-            printf("U\n");
+            tanks[i].bullet_tex = 25 + 18 + tanks[i].explode_anim;
+            if (tanks[i].explode_anim >= 2)
+            {
+                tanks[i].explode_anim = 0;
+                tanks[i].fire = RELOAD;
+                printf("RELOAD\n");
+            }
+            else
+            {
+                tanks[i].explode_anim++;
+            }
         }
-        tank->bullet_pos[0] = tank->pos[0];
-        tank->bullet_pos[1] = tank->pos[1];
+
+        // reset
+        if (RELOAD == tanks[i].fire)
+        {
+
+        }
     }
-    // movement
-    if (PROPELL == tank->fire)
-    {
-        if (LEFT == tank->gun_dir)
-        {
-            tank->bullet_pos[0] -= PIXEL_SIZE;
-            printf("<");
-        }
-        if (RIGHT == tank->gun_dir)
-        {
-            tank->bullet_pos[0] += PIXEL_SIZE;
-            printf(">");
-        }
-        if (DOWN == tank->gun_dir)
-        {
-            tank->bullet_pos[1] -= PIXEL_SIZE;
-            printf("v\n");
-        }
-        if (UP == tank->gun_dir)
-        {
-            tank->bullet_pos[1] += PIXEL_SIZE;
-            printf("^\n");
-        }
-    }
-
-//    for (int i = 0; i < 2; i++)
-//    {
-//         if (tank->pos[i] + PIXEL_SIZE < 0.0)
-//         {
-//             tank->pos[i] = 0.0 - PIXEL_SIZE;
-//         }
-//         else if (tank->pos[i] - PIXEL_SIZE > TILE_SIZE * (MAP_SIZE - 1))
-//         {
-//             tank->pos[i] = TILE_SIZE * (MAP_SIZE - 1) + PIXEL_SIZE;
-//         }
-//    }
-
-    // collision
-    
-    // animation of explosion (no collision then)
-
-    // reset
 }
 
 void render_map(unsigned int shaderProgram_tex, t_vbuff *vbuff, t_tile map[MAP_SIZE][MAP_SIZE])
@@ -387,7 +423,7 @@ void move_tank(t_tile *tank)// TODO separate tex_index and pos in two funcs
 void render_tank(t_tile *tank, unsigned int shaderProgram_tex, t_vbuff *vbuff)
 {
     DrawSprite(shaderProgram_tex, vbuff, tank->texture[tank->tex], tank->pos, size, angle, tank->color);
-    if (PROPELL == tank->fire)
+    if (PROPELL == tank->fire || EXPLODE == tank->fire)
     {
         DrawSprite(shaderProgram_tex, vbuff, tank->texture[tank->bullet_tex], tank->bullet_pos, size, angle, color);
     }

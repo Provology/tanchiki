@@ -22,6 +22,8 @@ typedef struct s_tile
     signed int velocity[2];
     int fire;
     int gun_dir;
+    int explode_anim;
+    int bullet_speed;
     float bullet_pos[3];
     float pos[3];
 //    float size[3] = {80.0f, 60.0f, 1.0};
